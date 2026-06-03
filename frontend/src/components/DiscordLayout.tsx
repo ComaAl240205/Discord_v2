@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { ServerSidebar } from "./ServerSidebar";
 import { ChannelSidebar } from "./ChannelSidebar";
 import { ChatPanel } from "./ChatPanel";
+import { CreateServerModal } from "./CreateServerModal";
+import { ToastStack } from "./Toast";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -9,11 +11,7 @@ function clamp(value: number, min: number, max: number) {
 
 function getInitialSidebarWidth() {
   const saved = Number(localStorage.getItem("friendSidebarWidth"));
-
-  if (!Number.isFinite(saved)) {
-    return 280;
-  }
-
+  if (!Number.isFinite(saved)) return 280;
   return clamp(saved, 240, 420);
 }
 
@@ -25,7 +23,6 @@ export function DiscordLayout() {
 
     function onMove(moveEvent: MouseEvent) {
       const next = clamp(moveEvent.clientX - 72, 240, 420);
-
       setSidebarWidth(next);
       localStorage.setItem("friendSidebarWidth", String(next));
     }
@@ -54,6 +51,9 @@ export function DiscordLayout() {
       <ChannelSidebar />
       <div className="layout-resizer" onMouseDown={startResize} />
       <ChatPanel />
+
+      <CreateServerModal />
+      <ToastStack />
     </div>
   );
 }

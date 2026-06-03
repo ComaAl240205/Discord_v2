@@ -19,35 +19,34 @@ export function SettingsModal() {
   const info = useAppStore((s) => s.info);
   const loading = useAppStore((s) => s.loading);
 
-  const [username, setUsername] = useState(user?.username ?? "");
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState(user?.bio ?? "");
 
   useEffect(() => {
-    if (user?.username) {
+    if (user) {
       setUsername(user.username);
+      setBio(user.bio ?? "");
     }
-  }, [user?.username]);
+  }, [user]);
 
   if (!open || !user) return null;
 
-  const avatar = assetUrl(user.avatar_url);
+  const avatar = assetUrl(user.avatar_url ?? null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const clean = username.trim();
-
     if (!clean) return;
 
-    await updateUsername(clean);
+    await updateUsername(clean, bio);
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     await uploadAvatar(file);
-
     e.target.value = "";
   }
 
@@ -92,6 +91,17 @@ export function SettingsModal() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
+          />
+
+          <label htmlFor="settingsBio">Beschreibung</label>
+
+          <textarea
+            id="settingsBio"
+            name="settingsBio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={280}
+            placeholder="Über dich..."
           />
 
           <button type="submit" disabled={loading}>

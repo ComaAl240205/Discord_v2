@@ -1,75 +1,140 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
-import {
-  MoreHorizontal,
-  Pin,
-  Reply,
-  Send,
-  Trash2,
-  X
-} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Hash, MoreHorizontal, Pin, Reply, Send, Trash2, X } from "lucide-react";
 import { useAppStore } from "../store";
-import type { DirectMessage } from "../types";
+import type { ChannelMessage, DirectMessage } from "../types";
 import { API_URL } from "../api";
 
-/* ============================================================================
-   Helpers
-   ============================================================================ */
-
-/**
- * Baut eine absolute URL für Assets (Avatar etc.).
- * Wichtig: gibt **undefined** zurück (nicht null),
- * damit React <img src> nicht rot wird.
- */
+/* Helpers */
 function assetUrl(path?: string | null): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("http")) return path;
   return `${API_URL}${path}`;
 }
 
-/**
- * Kleiner Helfer für sichere String‑Initialen.
- */
 function initials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-/* ============================================================================
-   Component
-   ============================================================================ */
-
+/* Wrapper (keine Hook-Order Probleme) */
 export function ChatPanel() {
-  /* --------------------------------------------------------------------------
-     Local UI State
-     -------------------------------------------------------------------------- */
+  const activeServerId = useAppStore((s) => s.activeServerId);
+  return activeServerId ? <ChatPanelServer /> : <ChatPanelDM />;
+}
 
-  // Texteingabe
+/* =========================
+   SERVER CHANNEL CHAT
+========================= */
+function ChatPanelServer() {
+  const user = useAppStore((s) => s.user);
+
+  const serverDetail = useAppStore((s) => s.serverDetail);
+  const serverChannels = useAppStore((s) => s.serverChannels);
+  const activeChannelId = useAppStore((s) => s.activeChannelId);
+
+  const channelMessages = useAppStore((s) => s.channelMessages);
+  const sendChannelMessage = useAppStore((s) => s.sendChannelMessage);
+
   const [text, setText] = useState("");
-
-  // Kontextmenü (Message Actions)
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
-  /* --------------------------------------------------------------------------
-     Refs
-     -------------------------------------------------------------------------- */
-
-  // Timer für "typing stopped"
-  const typingTimer = useRef<number | null>(null);
-
-  // Scroll‑Anker unten
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Message‑Refs zum Scrollen auf einzelne Nachrichten
-  const messageRefs = useRef<Record<number, HTMLElement | null>>({});
+  const activeChannel = useMemo(() => {
+    if (!activeChannelId) return null;
+    return serverChannels.find((c) => c.id === activeChannelId) ?? null;
+  }, [serverChannels, activeChannelId]);
 
-  /* --------------------------------------------------------------------------
-     Store State
-     -------------------------------------------------------------------------- */
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [channelMessages.length, activeChannelId]);
+
+  if (!activeChannelId || !activeChannel) {
+    return (
+      <main className="chat-panel empty-chat">
+        <div className="empty-chat-inner">
+          <h2>Wähle einen Channel aus</h2>
+          <p>Links im Server einen Channel anklicken.</p>
+        </div>
+      </main>
+    );
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = text.trim();
+    if (!clean) return;
+    await sendChannelMessage(clean);
+    setText("");
+  };
+
+  return (
+    <main className="chat-panel">
+      <header className="chat-header">
+        <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Hash size={16} />
+          {activeChannel.name}
+        </strong>
+        <span className="chat-header-status">{serverDetail?.name ?? ""}</span>
+      </header>
+
+      <section className="messages">
+        {channelMessages.length === 0 && (
+          <div className="empty-dm-info">
+            <p>Das ist der Anfang des Channels.</p>
+          </div>
+        )}
+
+        {channelMessages.map((m: ChannelMessage) => {
+          const own = m.author_id === user?.id;
+          const displayName = own ? "Du" : m.author;
+
+          return (
+            <article
+              key={m.id}
+              className={"message-row message-hover-row " + (own ? "own-message " : "")}
+            >
+              <div className="avatar">{initials(displayName)}</div>
+
+              <div className="message-body">
+                <div className="message-meta">
+                  <strong>{displayName}</strong>
+                  <span>{m.created_at}</span>
+                </div>
+                <p>{m.content}</p>
+              </div>
+            </article>
+          );
+        })}
+
+        <div ref={bottomRef} />
+      </section>
+
+      <div className="typing-indicator" />
+
+      <form className="message-input-wrap" onSubmit={handleSubmit}>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={`Nachricht in #${activeChannel.name}`}
+          autoComplete="off"
+        />
+
+        <button type="submit" title="Senden">
+          <Send size={18} />
+        </button>
+      </form>
+    </main>
+  );
+}
+
+/* =========================
+   DM CHAT (dein Style)
+========================= */
+function ChatPanelDM() {
+  const [text, setText] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  const typingTimer = useRef<number | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const messageRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const user = useAppStore((s) => s.user);
   const friends = useAppStore((s) => s.friends);
@@ -78,60 +143,27 @@ export function ChatPanel() {
   const dmTypingByFriend = useAppStore((s) => s.dmTypingByFriend);
   const replyToMessage = useAppStore((s) => s.replyToMessage);
 
-  /* --------------------------------------------------------------------------
-     Store Actions
-     -------------------------------------------------------------------------- */
-
   const sendDm = useAppStore((s) => s.sendDm);
   const sendDmTyping = useAppStore((s) => s.sendDmTyping);
   const setReplyToMessage = useAppStore((s) => s.setReplyToMessage);
   const deleteDm = useAppStore((s) => s.deleteDm);
   const togglePinDm = useAppStore((s) => s.togglePinDm);
 
-  /* --------------------------------------------------------------------------
-     Derived State (Memoized)
-     -------------------------------------------------------------------------- */
-
-  /**
-   * Aktiver Chat‑Partner
-   */
   const activeFriend = useMemo(() => {
     return friends.find((f) => f.id === activeFriendId) ?? null;
   }, [friends, activeFriendId]);
 
-  /**
-   * Name der tippenden Person (Realtime)
-   */
   const typingName = useMemo(() => {
     if (!activeFriendId) return null;
     return dmTypingByFriend[activeFriendId] ?? null;
   }, [dmTypingByFriend, activeFriendId]);
 
-  /**
-   * Angepinnte Nachrichten
-   */
-  const pinnedMessages = useMemo(() => {
-    return dmMessages.filter((m) => m.pinned);
-  }, [dmMessages]);
+  const pinnedMessages = useMemo(() => dmMessages.filter((m) => m.pinned), [dmMessages]);
 
-  /* --------------------------------------------------------------------------
-     Effects
-     -------------------------------------------------------------------------- */
-
-  /**
-   * Automatisch nach unten scrollen,
-   * wenn neue Nachrichten kommen oder Chat wechselt.
-   */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "end"
-    });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [dmMessages.length, activeFriendId]);
 
-  /**
-   * Cleanup: Typing‑Timer abbrechen beim Unmount / Chat‑Wechsel
-   */
   useEffect(() => {
     return () => {
       sendDmTyping(false);
@@ -142,13 +174,6 @@ export function ChatPanel() {
     };
   }, [activeFriendId, sendDmTyping]);
 
-  /* --------------------------------------------------------------------------
-     Handlers
-     -------------------------------------------------------------------------- */
-
-  /**
-   * Nachricht absenden
-   */
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -168,9 +193,6 @@ export function ChatPanel() {
     [text, activeFriendId, sendDm, sendDmTyping]
   );
 
-  /**
-   * Texteingabe + Typing‑Status
-   */
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
@@ -194,17 +216,11 @@ export function ChatPanel() {
     [sendDmTyping]
   );
 
-  /**
-   * Scrollt zu einer bestimmten Nachricht (Reply / Pin)
-   */
   const scrollToMessage = useCallback((messageId: number) => {
     const el = messageRefs.current[messageId];
     if (!el) return;
 
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
 
     el.classList.add("message-flash");
     window.setTimeout(() => {
@@ -212,9 +228,6 @@ export function ChatPanel() {
     }, 1200);
   }, []);
 
-  /**
-   * Action‑Menü pro Nachricht
-   */
   const renderActions = useCallback(
     (message: DirectMessage, own: boolean) => {
       return (
@@ -222,9 +235,7 @@ export function ChatPanel() {
           <button
             type="button"
             title="Optionen"
-            onClick={() =>
-              setOpenMenuId(openMenuId === message.id ? null : message.id)
-            }
+            onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
           >
             <MoreHorizontal size={18} />
           </button>
@@ -271,17 +282,8 @@ export function ChatPanel() {
         </div>
       );
     },
-    [
-      openMenuId,
-      setReplyToMessage,
-      togglePinDm,
-      deleteDm
-    ]
+    [openMenuId, setReplyToMessage, togglePinDm, deleteDm]
   );
-
-  /* --------------------------------------------------------------------------
-     Empty State (kein Chat ausgewählt)
-     -------------------------------------------------------------------------- */
 
   if (!activeFriend) {
     return (
@@ -294,25 +296,13 @@ export function ChatPanel() {
     );
   }
 
-  /* --------------------------------------------------------------------------
-     Render
-     -------------------------------------------------------------------------- */
-
   return (
     <main className="chat-panel">
-      {/* --------------------------------------------------
-         Header (bewusst OHNE Avatar)
-         -------------------------------------------------- */}
       <header className="chat-header">
         <strong>{activeFriend.username}</strong>
-        <span className="chat-header-status">
-          {activeFriend.online ? "Online" : "Offline"}
-        </span>
+        <span className="chat-header-status">{activeFriend.online ? "Online" : "Offline"}</span>
       </header>
 
-      {/* --------------------------------------------------
-         Pinned Messages
-         -------------------------------------------------- */}
       {pinnedMessages.length > 0 && (
         <section className="pinned-bar">
           <div className="pinned-title">
@@ -322,11 +312,7 @@ export function ChatPanel() {
 
           <div className="pinned-list">
             {pinnedMessages.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => scrollToMessage(m.id)}
-              >
+              <button key={m.id} type="button" onClick={() => scrollToMessage(m.id)}>
                 <strong>{m.sender_username}</strong>
                 <span>{m.content.slice(0, 80)}</span>
               </button>
@@ -335,9 +321,6 @@ export function ChatPanel() {
         </section>
       )}
 
-      {/* --------------------------------------------------
-         Messages
-         -------------------------------------------------- */}
       <section className="messages">
         {dmMessages.length === 0 && (
           <div className="empty-dm-info">
@@ -362,36 +345,23 @@ export function ChatPanel() {
                 (message.pinned ? "pinned-message" : "")
               }
             >
-              {/* Avatar – KEIN Online‑Dot im Chat */}
               <div className="avatar">
-                {avatar ? (
-                  <img src={avatar} alt="avatar" />
-                ) : (
-                  initials(displayName)
-                )}
+                {avatar ? <img src={avatar} alt="avatar" /> : initials(displayName)}
               </div>
 
               <div className="message-body">
-                {/* Reply Preview */}
                 {message.reply_to_id && (
                   <button
                     className="reply-preview"
                     type="button"
-                    onClick={() =>
-                      scrollToMessage(message.reply_to_id!)
-                    }
+                    onClick={() => scrollToMessage(message.reply_to_id!)}
                   >
                     <Reply size={12} />
-                    <strong>
-                      {message.reply_preview_author ?? "Nachricht"}
-                    </strong>
-                    <span>
-                      {message.reply_preview_content ?? "Antwort"}
-                    </span>
+                    <strong>{message.reply_preview_author ?? "Nachricht"}</strong>
+                    <span>{message.reply_preview_content ?? "Antwort"}</span>
                   </button>
                 )}
 
-                {/* Meta */}
                 <div className="message-meta">
                   <strong>{displayName}</strong>
                   <span>{message.created_at}</span>
@@ -404,7 +374,6 @@ export function ChatPanel() {
                   )}
                 </div>
 
-                {/* Content */}
                 <p>{message.content}</p>
               </div>
 
@@ -416,45 +385,25 @@ export function ChatPanel() {
         <div ref={bottomRef} />
       </section>
 
-      {/* --------------------------------------------------
-         Typing Indicator
-         -------------------------------------------------- */}
-      <div className="typing-indicator">
-        {typingName ? `${typingName} schreibt...` : ""}
-      </div>
+      <div className="typing-indicator">{typingName ? `${typingName} schreibt...` : ""}</div>
 
-      {/* --------------------------------------------------
-         Reply Compose
-         -------------------------------------------------- */}
       {replyToMessage && (
         <div className="reply-compose">
           <div>
             <strong>
               Antwort an{" "}
-              {replyToMessage.sender_id === user?.id
-                ? "dich"
-                : replyToMessage.sender_username}
+              {replyToMessage.sender_id === user?.id ? "dich" : replyToMessage.sender_username}
             </strong>
             <p>{replyToMessage.content}</p>
           </div>
 
-          <button
-            type="button"
-            title="Antwort abbrechen"
-            onClick={() => setReplyToMessage(null)}
-          >
+          <button type="button" title="Antwort abbrechen" onClick={() => setReplyToMessage(null)}>
             <X size={16} />
           </button>
         </div>
       )}
 
-      {/* --------------------------------------------------
-         Message Input
-         -------------------------------------------------- */}
-      <form
-        className="message-input-wrap"
-        onSubmit={handleSubmit}
-      >
+      <form className="message-input-wrap" onSubmit={handleSubmit}>
         <input
           value={text}
           onChange={handleInputChange}

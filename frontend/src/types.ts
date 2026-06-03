@@ -2,6 +2,7 @@ export type User = {
   id: number;
   username: string;
   avatar_url?: string | null;
+  bio?: string | null;
 };
 
 export type Friend = {
@@ -34,4 +35,50 @@ export type DirectMessage = {
   pinned?: boolean;
   pinned_at?: string | null;
   pinned_by_id?: number | null;
+};
+
+/* -----------------------------
+   Server / Channels
+----------------------------- */
+
+export type Server = {
+  id: number;
+  name: string;
+  owner_id: number;
+  avatar_url?: string | null;
+  description?: string | null;
+};
+
+export type ServerMember = {
+  id: number;
+  user_id: number;
+  username: string;
+  avatar_url?: string | null;
+  role: string; // "owner" | "member"
+};
+
+export type ServerDetail = Server & {
+  members: ServerMember[];
+};
+
+export type Channel = {
+  id: number;
+  server_id: number;
+  name: string;
+};
+
+export type ChannelMessage = {
+  id: number;
+  channel_id: number;
+  author_id: number;
+  author: string;
+  content: string;
+  created_at: string;
+};
+
+export type UserPublic = {
+  id: number;
+  username: string;
+  avatar_url?: string | null;
+  bio?: string | null;
 };
