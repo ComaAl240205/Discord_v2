@@ -9,7 +9,7 @@ function assetUrl(path?: string | null): string | undefined {
   return `${API_URL}${path}`;
 }
 
-export function ServerSidebar() {
+export function ServerSidebar({ onDmClick }: { onDmClick?: () => void }) {
   const logout = useAppStore((s) => s.logout);
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
   const user = useAppStore((s) => s.user);
@@ -25,12 +25,22 @@ export function ServerSidebar() {
     logout();
   }
 
+  function handleDmClick() {
+    void selectServer(null);
+    onDmClick?.();
+  }
+
+  function handleServerClick(serverId: number) {
+    void selectServer(serverId);
+    onDmClick?.();
+  }
+
   return (
     <aside className="server-sidebar">
       <button
         className={"server-logo " + (activeServerId === null ? "active" : "")}
         title="Direktnachrichten"
-        onClick={() => void selectServer(null)}
+        onClick={handleDmClick}
       >
         {user?.username.slice(0, 1).toUpperCase() ?? "D"}
       </button>
@@ -47,7 +57,7 @@ export function ServerSidebar() {
               "server-icon " + (activeServerId === server.id ? "active" : "")
             }
             title={server.name}
-            onClick={() => void selectServer(server.id)}
+            onClick={() => handleServerClick(server.id)}
           >
             {avatar ? (
               <img
@@ -72,7 +82,7 @@ export function ServerSidebar() {
         title="Server erstellen"
         onClick={() => setCreateServerOpen(true)}
       >
-        <Plus size={22} />
+        <Plus size={20} />
       </button>
 
       <div className="server-spacer" />
@@ -82,11 +92,11 @@ export function ServerSidebar() {
         title="Einstellungen"
         onClick={() => setSettingsOpen(true)}
       >
-        <Settings size={18} />
+        <Settings size={20} />
       </button>
 
-      <button className="server-icon logout" onClick={handleLogout}>
-        <LogOut size={18} />
+      <button className="server-icon logout" onClick={handleLogout} title="Abmelden">
+        <LogOut size={20} />
       </button>
     </aside>
   );

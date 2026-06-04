@@ -6,17 +6,19 @@ import type { Channel } from "../types";
 import { API_URL } from "../api";
 import { ServerSettingsButton } from "./ServerSettingsButton";
 
-type ChannelSidebarProps = {
-  onOpenServerSettings: () => void;
-};
-
 function assetUrl(path?: string | null): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("http")) return path;
   return `${API_URL}${path}`;
 }
 
-export function ChannelSidebar({ onOpenServerSettings }: ChannelSidebarProps) {
+type ChannelSidebarProps = {
+  open?: boolean;
+  onOpenServerSettings: () => void;
+  onClose?: () => void;
+};
+
+export function ChannelSidebar({ onOpenServerSettings, onClose }: ChannelSidebarProps) {
   const [username, setUsername] = useState("");
   const [newChannelName, setNewChannelName] = useState("");
 
@@ -115,7 +117,10 @@ export function ChannelSidebar({ onOpenServerSettings }: ChannelSidebarProps) {
                 <button
                   className="friend-item"
                   type="button"
-                  onClick={() => void selectChannel(ch.id)}
+                  onClick={() => {
+                    void selectChannel(ch.id);
+                    onClose?.();
+                  }}
                 >
                   <div
                     className="friend-avatar"
@@ -298,7 +303,10 @@ export function ChannelSidebar({ onOpenServerSettings }: ChannelSidebarProps) {
             >
               <button
                 className="friend-item"
-                onClick={() => void openDm(friend.id)}
+                onClick={() => {
+                  void openDm(friend.id);
+                  onClose?.();
+                }}
                 type="button"
               >
                 <div

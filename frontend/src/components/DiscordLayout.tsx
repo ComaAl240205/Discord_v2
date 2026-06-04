@@ -20,6 +20,7 @@ function getInitialSidebarWidth() {
 export function DiscordLayout() {
   const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function startResize(event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -51,14 +52,23 @@ export function DiscordLayout() {
       className="discord-app"
       style={
         {
-          "--channel-width": `${sidebarWidth}px`
+          "--channel-width": `${sidebarWidth}px`,
+          "--sidebar-open": sidebarOpen ? "1" : "0"
         } as React.CSSProperties
       }
     >
-      <ServerSidebar />
+      <ServerSidebar
+        onDmClick={() => setSidebarOpen(!sidebarOpen)}
+      />
 
       <ChannelSidebar
         onOpenServerSettings={() => setServerSettingsOpen(true)}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div
+        className="sidebar-backdrop"
+        onClick={() => setSidebarOpen(false)}
       />
 
       <div className="layout-resizer" onMouseDown={startResize} onTouchStart={startResize} />

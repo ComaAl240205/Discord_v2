@@ -61,6 +61,16 @@ button {
   background: #5865f2;
 }
 
+@media (max-width: 900px) {
+  .discord-app {
+    grid-template-columns: 72px 0 0 minmax(0, 1fr);
+  }
+
+  .layout-resizer {
+    display: none;
+  }
+}
+
 body.is-resizing {
   user-select: none;
   cursor: col-resize;
@@ -88,12 +98,15 @@ body.is-resizing {
   height: 48px;
   border: 0;
   border-radius: 18px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: white;
   font-weight: 800;
   background: #313338;
   transition: 160ms ease;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .server-logo {
@@ -797,12 +810,12 @@ body.is-resizing {
 
 .chat-panel.empty-chat {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   height: 100vh;
-  padding-top: 22vh;
   text-align: center;
   color: #b5bac1;
+  padding: 20px;
 }
 
 .empty-chat-inner {
@@ -1396,50 +1409,65 @@ body.is-resizing {
   color: #fff;
 }
 
+/* ==========================================================================
+    Mobile Sidebar Toggle (< 900px)
+    ========================================================================== */
+
+/* ==========================================================================
+     Mobile Sidebar Toggle (< 900px)
+     ========================================================================== */
+
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .discord-app {
-    grid-template-columns: 64px minmax(220px, 320px) 0 minmax(0, 1fr);
+    position: relative;
+  }
+
+  .channel-sidebar {
+    position: fixed !important;
+    left: 72px;
+    top: 0;
+    width: var(--channel-width, 280px);
+    height: 100vh;
+    z-index: 998;
+    background: #2c2f33;
+    border-right: 1px solid #1f2024;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transform: translateX(calc(var(--sidebar-open, 0) * 100% - 100%));
+    transition: transform 200ms ease;
+    box-shadow: none;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 997;
+    opacity: calc(var(--sidebar-open, 0) * 0.4);
+    transition: opacity 200ms ease;
+    pointer-events: calc(var(--sidebar-open, 0) * 1);
   }
 
   .layout-resizer {
-    display: none;
+    display: none !important;
   }
 
-  .server-sidebar {
-    width: 64px;
-  }
-
-  .server-logo,
-  .server-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 16px;
-  }
-
-  .channel-section {
-    padding: 12px 8px;
-  }
-
-  .chat-header {
-    padding: 0 14px;
-  }
-
-  .messages {
-    padding: 14px;
-  }
-
-  .message-input-wrap {
-    margin: 0 14px 14px;
-  }
-
-  .reply-compose {
-    margin: 0 14px;
+  .chat-panel {
+    z-index: 1 !important;
   }
 }
 
 @media (max-width: 760px) {
   .discord-app {
-    grid-template-columns: 58px minmax(200px, 260px) 0 minmax(0, 1fr);
+    grid-template-columns: 58px 0 0 minmax(0, 1fr);
   }
 
   .server-sidebar {
@@ -1594,7 +1622,7 @@ body.is-resizing {
 
 @media (max-width: 560px) {
   .discord-app {
-    grid-template-columns: 54px minmax(180px, 230px) 0 minmax(0, 1fr);
+    grid-template-columns: 54px 0 0 minmax(0, 1fr);
   }
 
   .server-logo,
@@ -1677,7 +1705,7 @@ body.is-resizing {
   }
 
   .discord-app {
-    grid-template-columns: 50px minmax(160px, 220px) 0 minmax(0, 1fr);
+    grid-template-columns: 50px 0 0 minmax(0, 1fr);
   }
 
   .server-sidebar {
@@ -1687,11 +1715,16 @@ body.is-resizing {
 
   .server-logo,
   .server-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
-    font-size: 12px;
-    min-width: 36px;
+    font-size: 14px;
+  }
+
+  .server-logo svg,
+  .server-icon svg {
+    width: 18px;
+    height: 18px;
   }
 
   .server-divider {
@@ -1898,6 +1931,11 @@ body.is-resizing {
     padding: 2px;
     border-radius: 4px;
     font-size: 12px;
+  }
+
+  .message-actions > button svg {
+    width: 14px;
+    height: 14px;
   }
 
   .message-menu {
