@@ -1,5 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Hash, MoreHorizontal, Pin, Reply, Send, Trash2, X } from "lucide-react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
+import {
+  ArrowLeft,
+  Hash,
+  MoreHorizontal,
+  Pin,
+  Reply,
+  Send,
+  Trash2,
+  X
+} from "lucide-react";
 import { useAppStore } from "../store";
 import { useServerStore } from "../store_2";
 import type { ChannelMessage, DirectMessage } from "../types";
@@ -45,6 +60,15 @@ function ChatPanelServer() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [channelMessages.length, activeChannelId]);
 
+  function goBackToChannels() {
+    setText("");
+
+    useServerStore.setState({
+      activeChannelId: null,
+      channelMessages: []
+    });
+  }
+
   if (!activeChannelId || !activeChannel) {
     return (
       <main className="chat-panel empty-chat">
@@ -69,7 +93,27 @@ function ChatPanelServer() {
   return (
     <main className="chat-panel">
       <header className="chat-header">
-        <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <button
+          type="button"
+          className="mobile-back-btn"
+          onClick={goBackToChannels}
+          title="Zurück"
+          aria-label="Zurück zu Channels"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
+        <strong
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            minWidth: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis"
+          }}
+        >
           <Hash size={16} />
           {activeChannel.name}
         </strong>
@@ -91,7 +135,9 @@ function ChatPanelServer() {
           return (
             <article
               key={m.id}
-              className={"message-row message-hover-row " + (own ? "own-message " : "")}
+              className={
+                "message-row message-hover-row " + (own ? "own-message " : "")
+              }
             >
               <div className="avatar">{initials(displayName)}</div>
 
@@ -100,6 +146,7 @@ function ChatPanelServer() {
                   <strong>{displayName}</strong>
                   <span>{m.created_at}</span>
                 </div>
+
                 <p>{m.content}</p>
               </div>
             </article>
@@ -173,12 +220,31 @@ function ChatPanelDM() {
   useEffect(() => {
     return () => {
       sendDmTyping(false);
+
       if (typingTimer.current) {
         window.clearTimeout(typingTimer.current);
         typingTimer.current = null;
       }
     };
   }, [activeFriendId, sendDmTyping]);
+
+  function goBackToFriends() {
+    sendDmTyping(false);
+
+    if (typingTimer.current) {
+      window.clearTimeout(typingTimer.current);
+      typingTimer.current = null;
+    }
+
+    setText("");
+    setOpenMenuId(null);
+
+    useAppStore.setState({
+      activeFriendId: null,
+      dmMessages: [],
+      replyToMessage: null
+    });
+  }
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -229,6 +295,7 @@ function ChatPanelDM() {
     el.scrollIntoView({ behavior: "smooth", block: "center" });
 
     el.classList.add("message-flash");
+
     window.setTimeout(() => {
       el.classList.remove("message-flash");
     }, 1200);
@@ -241,7 +308,9 @@ function ChatPanelDM() {
           <button
             type="button"
             title="Optionen"
-            onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
+            onClick={() =>
+              setOpenMenuId(openMenuId === message.id ? null : message.id)
+            }
           >
             <MoreHorizontal size={18} />
           </button>
@@ -305,7 +374,18 @@ function ChatPanelDM() {
   return (
     <main className="chat-panel">
       <header className="chat-header">
+        <button
+          type="button"
+          className="mobile-back-btn"
+          onClick={goBackToFriends}
+          title="Zurück"
+          aria-label="Zurück zu Freunden"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <strong>{activeFriend.username}</strong>
+
         <span className="chat-header-status">
           {activeFriend.online ? "Online" : "Offline"}
         </span>
@@ -320,7 +400,11 @@ function ChatPanelDM() {
 
           <div className="pinned-list">
             {pinnedMessages.map((m) => (
-              <button key={m.id} type="button" onClick={() => scrollToMessage(m.id)}>
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => scrollToMessage(m.id)}
+              >
                 <strong>{m.sender_username}</strong>
                 <span>{m.content.slice(0, 80)}</span>
               </button>
@@ -402,12 +486,19 @@ function ChatPanelDM() {
           <div>
             <strong>
               Antwort an{" "}
-              {replyToMessage.sender_id === user?.id ? "dich" : replyToMessage.sender_username}
+              {replyToMessage.sender_id === user?.id
+                ? "dich"
+                : replyToMessage.sender_username}
             </strong>
+
             <p>{replyToMessage.content}</p>
           </div>
 
-          <button type="button" title="Antwort abbrechen" onClick={() => setReplyToMessage(null)}>
+          <button
+            type="button"
+            title="Antwort abbrechen"
+            onClick={() => setReplyToMessage(null)}
+          >
             <X size={16} />
           </button>
         </div>

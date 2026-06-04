@@ -1,3 +1,10 @@
+/* ============================================================================
+   styles.pc-only.css
+   Desktop/PC-only CSS generated from styles.css.
+   Mobile @media blocks were removed so desktop stays clean.
+   For phones/tablets import mobile-fixed.css AFTER this file.
+   ============================================================================ */
+
 * {
   box-sizing: border-box;
 }
@@ -61,15 +68,9 @@ button {
   background: #5865f2;
 }
 
-@media (max-width: 900px) {
-  .discord-app {
-    grid-template-columns: 72px 0 0 minmax(0, 1fr);
-  }
 
-  .layout-resizer {
-    display: none;
-  }
-}
+/* removed mobile/touch media block for PC-only CSS */
+
 
 body.is-resizing {
   user-select: none;
@@ -617,12 +618,9 @@ body.is-resizing {
   display: block;
 }
 
-@media (hover: none) {
-  .message-actions {
-    display: flex !important;
-    opacity: 0.7;
-  }
-}
+
+/* removed mobile/touch media block for PC-only CSS */
+
 
 .message-actions > button {
   width: 34px;
@@ -1409,859 +1407,402 @@ body.is-resizing {
   color: #fff;
 }
 
-/* ==========================================================================
-    Mobile Sidebar Toggle (< 900px)
-    ========================================================================== */
+/* Mobile-specific CSS removed. Use mobile-fixed.css after this file for phones/tablets. */
 
-/* ==========================================================================
-     Mobile Sidebar Toggle (< 900px)
-     ========================================================================== */
+/* ============================================================================
+   UI Polish: Settings Modal Close Button + Modern Action Buttons
+   Add this at the VERY END of your last imported CSS file.
+   ============================================================================ */
 
-.sidebar-backdrop {
-  display: none;
+/* --------------------------------------------------------------------------
+   Settings Modal: schöner X-Button oben rechts
+   -------------------------------------------------------------------------- */
+
+.settings-header button,
+.settings-modal > .settings-header button {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+
+  background:
+    linear-gradient(180deg, rgba(63, 65, 71, 0.95), rgba(30, 31, 34, 0.95)) !important;
+
+  color: #dbdee1 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+  cursor: pointer !important;
+
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    transform 120ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease !important;
 }
 
-@media (max-width: 900px) {
-  .discord-app {
-    position: relative;
-  }
+.settings-header button:hover,
+.settings-modal > .settings-header button:hover {
+  background:
+    linear-gradient(180deg, rgba(218, 55, 60, 0.95), rgba(159, 42, 46, 0.95)) !important;
 
-  .channel-sidebar {
-    position: fixed !important;
-    left: 72px;
-    top: 0;
-    width: var(--channel-width, 280px);
-    height: 100vh;
-    z-index: 998;
-    background: #2c2f33;
-    border-right: 1px solid #1f2024;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transform: translateX(calc(var(--sidebar-open, 0) * 100% - 100%));
-    transition: transform 200ms ease;
-    box-shadow: none;
-  }
+  color: #ffffff !important;
+  border-color: rgba(255, 120, 120, 0.35) !important;
 
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 997;
-    opacity: calc(var(--sidebar-open, 0) * 0.4);
-    transition: opacity 200ms ease;
-    pointer-events: calc(var(--sidebar-open, 0) * 1);
-  }
-
-  .layout-resizer {
-    display: none !important;
-  }
-
-  .chat-panel {
-    z-index: 1 !important;
-  }
+  box-shadow:
+    0 10px 24px rgba(218, 55, 60, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
-@media (max-width: 760px) {
-  .discord-app {
-    grid-template-columns: 58px 0 0 minmax(0, 1fr);
-  }
-
-  .server-sidebar {
-    padding: 10px 0;
-    gap: 8px;
-  }
-
-  .server-logo,
-  .server-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-  }
-
-  .channel-sidebar {
-    min-width: 0;
-  }
-
-  .server-header {
-    padding: 0 12px;
-  }
-
-  .friend-add-box {
-    grid-template-columns: minmax(0, 1fr) 38px;
-    gap: 6px;
-  }
-
-  .friend-add-box button {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-  }
-
-  .friend-item {
-    min-height: 40px;
-    gap: 8px;
-  }
-
-  .friend-avatar,
-  .friend-avatar img,
-  .friend-avatar span:not(.status-dot) {
-    width: 32px;
-    height: 32px;
-  }
-
-  .status-dot {
-    width: 13px;
-    height: 13px;
-    right: -4px;
-    bottom: -3px;
-  }
-
-  .request-row {
-    grid-template-columns: minmax(0, 1fr) 28px 28px;
-    gap: 5px;
-    font-size: 13px;
-  }
-
-  .request-row button {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-  }
-
-  .section-title {
-    font-size: 11px;
-  }
-
-  .chat-panel {
-    grid-template-rows:
-      48px
-      auto
-      minmax(0, 1fr)
-      20px
-      auto
-      auto;
-  }
-
-  .chat-header {
-    height: 48px;
-    padding: 0 12px;
-  }
-
-  .messages {
-    padding: 12px;
-  }
-
-  .message-row {
-    grid-template-columns: 36px 1fr;
-    gap: 10px;
-  }
-
-  .avatar {
-    width: 34px;
-    height: 34px;
-  }
-
-  .message-meta {
-    gap: 7px;
-  }
-
-  .message-row p {
-    font-size: 14px;
-  }
-
-  .message-input-wrap {
-    height: 48px;
-    margin: 0 12px 12px;
-    grid-template-columns: 1fr 42px;
-  }
-
-  .message-input-wrap button {
-    width: 34px;
-    height: 34px;
-  }
-
-  .typing-indicator {
-    padding: 0 18px 4px;
-    font-size: 12px;
-  }
-
-  .create-server-modal,
-  .settings-modal,
-  .profile-modal {
-    width: calc(100vw - 24px);
-  }
-
-  .create-server-top {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .create-server-fields {
-    width: 100%;
-  }
-
-  .server-avatar-preview {
-    width: 96px;
-    height: 96px;
-  }
-
-  .toast-stack {
-    right: 10px;
-    left: 10px;
-    bottom: 10px;
-  }
-
-  .toast {
-    width: 100%;
-  }
+.settings-header button:active,
+.settings-modal > .settings-header button:active {
+  transform: scale(0.94) !important;
 }
 
-@media (max-width: 560px) {
-  .discord-app {
-    grid-template-columns: 54px 0 0 minmax(0, 1fr);
-  }
-
-  .server-logo,
-  .server-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 13px;
-    font-size: 13px;
-  }
-
-  .channel-section {
-    padding: 10px 6px;
-  }
-
-  .friend-row {
-    margin: 3px 4px;
-  }
-
-  .friend-item {
-    padding: 4px 6px;
-    min-height: 44px;
-  }
-
-  .friend-name {
-    font-size: 13px;
-  }
-
-  .friend-unread {
-    min-width: 12px;
-    height: 12px;
-    font-size: 9px;
-    padding: 0 4px;
-  }
-
-  .chat-header strong {
-    font-size: 14px;
-  }
-
-  .chat-header-status {
-    font-size: 11px;
-  }
-
-  .messages {
-    padding: 10px;
-  }
-
-  .message-row {
-    padding: 7px 4px;
-  }
-
-  .message-actions {
-    right: 6px;
-  }
-
-  .message-menu {
-    right: 0;
-    min-width: 140px;
-  }
-
-  .message-input-wrap input {
-    font-size: 16px;
-  }
+/* Falls im Button nur ein X-Text steht */
+.settings-header button svg,
+.settings-modal > .settings-header button svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke-width: 2.4 !important;
 }
 
-/* ==========================================================================
-    Mobile (Portrait, very small screens)
-    ========================================================================== */
+/* --------------------------------------------------------------------------
+   Settings Modal selbst etwas moderner
+   -------------------------------------------------------------------------- */
 
-@media (max-width: 480px) {
-  html,
-  body,
-  #root {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
+.settings-modal {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background:
+    radial-gradient(circle at top, rgba(88, 101, 242, 0.08), transparent 34%),
+    #2b2d31 !important;
 
-  body {
-    font-size: 14px;
-  }
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.025) !important;
+}
 
-  .discord-app {
-    grid-template-columns: 50px 0 0 minmax(0, 1fr);
-  }
+.settings-backdrop {
+  background: rgba(0, 0, 0, 0.68) !important;
+  backdrop-filter: blur(5px) !important;
+}
 
-  .server-sidebar {
-    padding: 8px 0;
-    gap: 6px;
-  }
+/* --------------------------------------------------------------------------
+   Moderne blaue Plus-/Action-Buttons
+   Betrifft:
+   - Freund hinzufügen Button
+   - Channel erstellen Button
+   - Mitglieder/Freunde hinzufügen Buttons
+   -------------------------------------------------------------------------- */
 
-  .server-logo,
-  .server-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    font-size: 14px;
-  }
+.friend-add-box button,
+.request-row button:not(.danger),
+.server-settings-btn,
+.create-server-submit,
+.settings-form button {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 
-  .server-logo svg,
-  .server-icon svg {
-    width: 18px;
-    height: 18px;
-  }
+  background:
+    linear-gradient(180deg, #6672ff 0%, #5865f2 48%, #4752c4 100%) !important;
 
-  .server-divider {
-    width: 28px;
-    height: 2px;
-  }
+  color: #ffffff !important;
 
-  .channel-sidebar {
-    scrollbar-width: none;
-  }
+  box-shadow:
+    0 8px 18px rgba(88, 101, 242, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
 
-  .channel-sidebar::-webkit-scrollbar {
-    display: none;
-  }
+  transition:
+    transform 120ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease !important;
+}
 
-  .server-header {
-    height: 46px;
-    padding: 0 10px;
-    font-size: 14px;
-  }
+.friend-add-box button:hover,
+.request-row button:not(.danger):hover,
+.server-settings-btn:hover,
+.create-server-submit:hover,
+.settings-form button:hover {
+  filter: brightness(1.08) saturate(1.05) !important;
 
-  .server-header strong {
-    font-size: 13px;
-  }
+  box-shadow:
+    0 10px 26px rgba(88, 101, 242, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 
-  .channel-section {
-    padding: 8px 4px;
-  }
+  transform: translateY(-1px) !important;
+}
 
-  .section-title {
-    margin: 6px 6px;
-    font-size: 10px;
-  }
+.friend-add-box button:active,
+.request-row button:not(.danger):active,
+.server-settings-btn:active,
+.create-server-submit:active,
+.settings-form button:active {
+  transform: scale(0.95) !important;
+  filter: brightness(0.95) !important;
+}
 
-  .friend-add-box {
-    grid-template-columns: minmax(0, 1fr) 36px;
-    gap: 5px;
-    margin: 6px;
-  }
+/* Icons in blauen Buttons sauber zentrieren */
+.friend-add-box button svg,
+.request-row button svg,
+.server-settings-btn svg,
+.create-server-submit svg,
+.settings-form button svg {
+  stroke-width: 2.4 !important;
+}
 
-  .friend-add-box input {
-    height: 36px;
-    font-size: 16px;
-    border-radius: 6px;
-  }
+/* --------------------------------------------------------------------------
+   Moderne rote Danger Buttons
+   Betrifft:
+   - kleines rotes X in Member/Friend rows
+   - Server löschen
+   - inline style background: #da373c
+   -------------------------------------------------------------------------- */
 
-  .friend-add-box button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    border-radius: 6px;
-  }
+.friend-remove,
+.server-danger-btn,
+.request-row button.danger,
+.request-row button[style*="da373c"] {
+  border: 1px solid rgba(255, 120, 120, 0.14) !important;
 
-  .friend-row {
-    margin: 2px 4px;
-    border-radius: 6px;
-  }
+  background:
+    linear-gradient(180deg, #f04f55 0%, #da373c 52%, #a8282d 100%) !important;
 
-  .friend-row.active {
-    background: #3f4147;
-  }
+  color: #ffffff !important;
 
-  .friend-item {
-    min-height: 44px;
-    padding: 6px 6px;
-    border-radius: 6px;
-    gap: 8px;
-    font-size: 13px;
-  }
+  box-shadow:
+    0 8px 18px rgba(218, 55, 60, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 
-  .friend-avatar,
-  .friend-avatar img,
-  .friend-avatar span:not(.status-dot) {
-    width: 32px;
-    height: 32px;
-  }
+  transition:
+    transform 120ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    opacity 140ms ease !important;
+}
 
-  .status-dot {
-    width: 12px;
-    height: 12px;
-    right: -3px;
-    bottom: -3px;
-    border: 2px solid #2b2d31;
-  }
+.friend-remove:hover,
+.server-danger-btn:hover,
+.request-row button.danger:hover,
+.request-row button[style*="da373c"]:hover {
+  filter: brightness(1.08) saturate(1.05) !important;
 
+  box-shadow:
+    0 10px 26px rgba(218, 55, 60, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+
+  transform: translateY(-1px) !important;
+}
+
+.friend-remove:active,
+.server-danger-btn:active,
+.request-row button.danger:active,
+.request-row button[style*="da373c"]:active {
+  transform: scale(0.94) !important;
+  filter: brightness(0.94) !important;
+}
+
+/* Desktop: Friend-Remove bleibt nur bei Hover sichtbar */
+@media (min-width: 901px) {
   .friend-remove {
-    width: 32px;
-    height: 32px;
-    opacity: 0.7;
-    pointer-events: auto;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
-  .request-row {
-    grid-template-columns: minmax(0, 1fr) 32px 32px;
-    gap: 4px;
-    margin: 4px 6px;
-    font-size: 12px;
-  }
-
-  .request-row button {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    border-radius: 6px;
-  }
-
-  .empty-small {
-    font-size: 12px;
-    padding: 6px;
-  }
-
-  .side-info,
-  .side-error {
-    margin: 6px;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 11px;
-  }
-
-  /* Chat Panel */
-  .chat-panel {
-    grid-template-rows:
-      46px
-      auto
-      minmax(0, 1fr)
-      20px
-      auto
-      auto;
-  }
-
-  .chat-header {
-    height: 46px;
-    padding: 0 10px;
-    font-size: 13px;
-  }
-
-  .chat-header strong {
-    font-size: 13px;
-  }
-
-  .chat-header-status {
-    font-size: 10px;
-  }
-
-  .pinned-bar {
-    padding: 4px 10px;
-    margin-bottom: 8px;
-    max-height: 40px;
-  }
-
-  .messages {
-    padding: 8px;
-    scrollbar-width: none;
-  }
-
-  .messages::-webkit-scrollbar {
-    display: none;
-  }
-
-  .message-row {
-    grid-template-columns: 32px 1fr;
-    gap: 8px;
-    padding: 6px 4px;
-    margin-bottom: 4px;
-    border-radius: 8px;
-  }
-
-  .avatar {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    font-size: 11px;
-  }
-
-  .message-meta {
-    gap: 6px;
-    font-size: 12px;
-  }
-
-  .message-meta strong {
-    font-size: 13px;
-  }
-
-  .message-meta span {
-    font-size: 11px;
-  }
-
-  .message-row p {
-    margin: 2px 0 0;
-    font-size: 13px;
-    line-height: 1.3;
-  }
-
-  .message-actions {
-    top: 2px;
-    right: 4px;
-    display: flex !important;
-    gap: 4px;
-  }
-
-  .message-actions > button {
-    width: 30px;
-    height: 28px;
-    padding: 2px;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-
-  .message-actions > button svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .message-menu {
-    right: 0;
-    min-width: 130px;
-    border-radius: 8px;
-    padding: 4px;
-  }
-
-  .message-menu button {
-    height: 32px;
-    border-radius: 6px;
-    font-size: 12px;
-    gap: 6px;
-    padding: 0 8px;
-  }
-
-  .reply-compose {
-    margin: 0 8px;
-    border-radius: 6px;
-    padding: 8px 10px;
-  }
-
-  .reply-preview {
-    font-size: 11px;
-  }
-
-  .message-input-wrap {
-    height: 44px;
-    margin: 0 8px 8px;
-    border-radius: 8px;
-    grid-template-columns: 1fr 40px;
-    padding-left: 10px;
-  }
-
-  .message-input-wrap input {
-    font-size: 16px;
-    border: 0;
-  }
-
-  .message-input-wrap button {
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-  }
-
-  .typing-indicator {
-    padding: 0 10px 4px;
-    font-size: 11px;
-  }
-
-  /* Modals */
-  .auth-screen {
-    padding: 16px;
-  }
-
-  .auth-card {
-    width: calc(100vw - 32px);
-    border-radius: 14px;
-    padding: 20px;
-    gap: 10px;
-  }
-
-  .auth-card input {
-    height: 44px;
-    border-radius: 8px;
-    font-size: 16px;
-    padding: 0 12px;
-  }
-
-  .auth-card button {
-    height: 44px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .settings-backdrop {
-    padding: 16px;
-  }
-
-  .settings-modal,
-  .profile-modal,
-  .create-server-modal {
-    width: calc(100vw - 32px);
-    border-radius: 12px;
-    padding: 16px;
-  }
-
-  .settings-modal {
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .settings-header {
-    gap: 8px;
-  }
-
-  .settings-avatar {
-    width: 80px;
-    height: 80px;
-    font-size: 20px;
-  }
-
-  .settings-avatar label {
-    width: 26px;
-    height: 26px;
-  }
-
-  .settings-form {
-    gap: 10px;
-  }
-
-  .settings-form input,
-  .settings-form textarea {
-    border-radius: 8px;
-    font-size: 16px;
-  }
-
-  .settings-form input {
-    height: 44px;
-    padding: 0 12px;
-  }
-
-  .settings-form textarea {
-    min-height: 100px;
-    padding: 10px;
-  }
-
-  .settings-form button {
-    height: 44px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .profile-header {
-    gap: 8px;
-  }
-
-  .profile-header button {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .profile-avatar {
-    width: 80px;
-    height: 80px;
-    font-size: 20px;
-  }
-
-  .profile-body {
-    gap: 8px;
-  }
-
-  .profile-body h3 {
-    font-size: 16px;
-  }
-
-  .profile-bio {
-    font-size: 13px;
-    max-width: calc(100vw - 64px);
-  }
-
-  .create-server-header {
-    gap: 8px;
-  }
-
-  .create-server-title strong {
-    font-size: 16px;
-  }
-
-  .create-server-title span {
-    font-size: 12px;
-  }
-
-  .create-server-close {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .create-server-top {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 12px;
-  }
-
-  .server-avatar-preview {
-    width: 90px;
-    height: 90px;
-    border-radius: 12px;
-  }
-
-  .server-avatar-fallback {
-    font-size: 24px;
-  }
-
-  .server-avatar-pick {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .create-server-fields label {
-    font-size: 11px;
-  }
-
-  .create-server-fields input {
-    height: 44px;
-    border-radius: 8px;
-    font-size: 16px;
-    padding: 0 12px;
-  }
-
-  .create-server-fields textarea {
-    min-height: 100px;
-    border-radius: 8px;
-    font-size: 14px;
-    padding: 10px 12px;
-  }
-
-  .create-server-submit {
-    height: 44px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .server-danger-btn {
-    min-height: 44px;
-    border-radius: 8px;
-  }
-
-  /* Toast */
-  .toast-stack {
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    gap: 8px;
-  }
-
-  .toast {
-    width: 100%;
-    border-radius: 10px;
-    padding: 12px;
-  }
-
-  .toast-title {
-    font-size: 12px;
-  }
-
-  .toast-body {
-    font-size: 12px;
-  }
-
-  /* Touch-specific improvements */
-  button,
-  input,
-  textarea {
-    -webkit-appearance: none;
-    appearance: none;
-    font-size: 16px;
-  }
-
-  button:active {
-    opacity: 0.8;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    font-size: 14px;
-  }
-
-  /* Prevent zoom on input focus */
-  input,
-  textarea,
-  select {
-    font-size: 16px;
+  .friend-row:hover .friend-remove {
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 }
 
-/* Extra small screens (< 380px) */
-@media (max-width: 380px) {
-  .discord-app {
-    grid-template-columns: 48px 150px 0 minmax(0, 1fr);
+/* Mobile: Remove-Button sichtbar, aber weniger brutal */
+@media (max-width: 900px) {
+  .friend-remove {
+    opacity: 0.92 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Inputs im Settings Modal moderner
+   -------------------------------------------------------------------------- */
+
+.settings-form input,
+.settings-form textarea,
+.create-server-fields input,
+.create-server-fields textarea,
+.friend-add-box input {
+  border: 1px solid rgba(255, 255, 255, 0.055) !important;
+  background: #1e1f22 !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 1px 0 rgba(0, 0, 0, 0.22) !important;
+
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease !important;
+}
+
+.settings-form input:focus,
+.settings-form textarea:focus,
+.create-server-fields input:focus,
+.create-server-fields textarea:focus,
+.friend-add-box input:focus {
+  border-color: rgba(88, 101, 242, 0.65) !important;
+
+  box-shadow:
+    0 0 0 3px rgba(88, 101, 242, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Avatar-Kamera Button im Settings Modal schöner
+   -------------------------------------------------------------------------- */
+
+.settings-avatar label,
+.server-avatar-pick {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+
+  background:
+    linear-gradient(180deg, #3f4147 0%, #1e1f22 100%) !important;
+
+  color: #ffffff !important;
+
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+
+  transition:
+    transform 120ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease !important;
+}
+
+.settings-avatar label:hover,
+.server-avatar-pick:hover {
+  background:
+    linear-gradient(180deg, #6672ff 0%, #5865f2 100%) !important;
+
+  box-shadow:
+    0 10px 24px rgba(88, 101, 242, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+}
+
+.settings-avatar label:active,
+.server-avatar-pick:active {
+  transform: scale(0.94) !important;
+}
+
+/* ============================================================================
+   QUICK FIX: Mobile Modal/Settings immer über allem
+   ============================================================================ */
+
+/* Backdrop wirklich fullscreen und sehr weit oben */
+.settings-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+
+  z-index: 2147483000 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding:
+    max(14px, env(safe-area-inset-top))
+    14px
+    max(14px, env(safe-area-inset-bottom)) !important;
+
+  background: rgba(0, 0, 0, 0.78) !important;
+  backdrop-filter: blur(8px) saturate(1.05) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.05) !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal selbst über Backdrop */
+.settings-modal,
+.create-server-modal,
+.profile-modal {
+  position: relative !important;
+  z-index: 2147483001 !important;
+
+  max-width: calc(100vw - 28px) !important;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  background:
+    radial-gradient(circle at top, rgba(88, 101, 242, 0.10), transparent 36%),
+    #2b2d31 !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+
+  box-shadow:
+    0 34px 100px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Wenn Modal innerhalb der Sidebar gerendert wird:
+   Sidebar temporär fullscreen machen, sonst bleibt backdrop manchmal im Drawer gefangen. */
+@media (max-width: 900px) {
+  .channel-sidebar:has(.settings-backdrop),
+  .chat-panel:has(.settings-backdrop) {
+    position: fixed !important;
+    inset: 0 !important;
+
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+
+    transform: none !important;
+    z-index: 2147482999 !important;
+
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
   }
 
-  .server-logo,
-  .server-icon {
-    width: 34px;
-    height: 34px;
-    font-size: 11px;
+  body:has(.settings-backdrop),
+  html:has(.settings-backdrop) {
+    overflow: hidden !important;
   }
+}
 
-  .chat-header,
-  .server-header {
-    height: 44px;
-    padding: 0 8px;
-    font-size: 12px;
-  }
+/* Message-Menü darf nie über Settings-Modal liegen */
+.message-actions,
+.message-menu {
+  z-index: 10000 !important;
+}
 
-  .messages {
-    padding: 6px;
-  }
+/* Sobald Settings offen ist, Message-Menü/Actions darunter deaktivieren */
+body:has(.settings-backdrop) .message-actions,
+body:has(.settings-backdrop) .message-menu {
+  pointer-events: none !important;
+}
 
-  .message-row {
-    gap: 6px;
-  }
-
-  .avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 9px;
-  }
-
-  .message-input-wrap {
-    height: 42px;
-    margin: 0 6px 6px;
-  }
-
-  .settings-modal,
-  .profile-modal,
-  .create-server-modal {
-    width: calc(100vw - 16px);
-    padding: 12px;
-  }
+/* X-Button im Modal bleibt klickbar und styled */
+.settings-header button,
+.create-server-close,
+.profile-header button {
+  position: relative !important;
+  z-index: 2147483002 !important;
 }

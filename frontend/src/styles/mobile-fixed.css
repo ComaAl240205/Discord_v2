@@ -1,0 +1,793 @@
+/* ============================================================================
+   mobile-fixed.css
+   Mobile-only patch for Discord_v2 layout.
+   Import this AFTER styles.css.
+   Goal: keep desktop untouched, repair iOS/Android usability.
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --mobile-rail-width: 56px;
+    --mobile-drawer-width: min(320px, calc(100vw - var(--mobile-rail-width)));
+    --mobile-header-height: 50px;
+    --mobile-input-height: 52px;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .discord-app {
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    display: grid !important;
+    grid-template-columns: var(--mobile-rail-width) minmax(0, 1fr) !important;
+    grid-template-rows: 100dvh !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: #313338;
+  }
+
+  .layout-resizer {
+    display: none !important;
+  }
+
+  /* Left server rail always stays usable. */
+  .server-sidebar {
+    grid-column: 1 !important;
+    width: var(--mobile-rail-width) !important;
+    min-width: var(--mobile-rail-width) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom)) !important;
+    gap: 8px !important;
+    z-index: 40 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border-radius: 14px !important;
+    padding: 0 !important;
+  }
+
+  .server-divider {
+    width: 30px !important;
+  }
+
+  /*
+    Mobile drawer behavior:
+    - When chat is empty, the friend/channel list is visible.
+    - When a chat exists, the drawer slides away so the chat is usable.
+    - If your React layout later sets --sidebar-open: 1 on .discord-app,
+      this CSS supports that too.
+  */
+  .channel-sidebar {
+    position: fixed !important;
+    left: var(--mobile-rail-width) !important;
+    top: 0 !important;
+    width: var(--mobile-drawer-width) !important;
+    max-width: var(--mobile-drawer-width) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 50 !important;
+    background: #2b2d31 !important;
+    border-right: 1px solid #1f2024 !important;
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.35) !important;
+    overflow: hidden !important;
+    transform: translateX(0) !important;
+    transition: transform 180ms ease !important;
+    will-change: transform;
+  }
+
+  .discord-app:has(.chat-panel:not(.empty-chat)) .channel-sidebar {
+    transform: translateX(calc(-1 * var(--mobile-drawer-width))) !important;
+  }
+
+  .discord-app[style*="--sidebar-open: 1"] .channel-sidebar,
+  .discord-app.sidebar-open .channel-sidebar,
+  .discord-app.mobile-sidebar-open .channel-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .channel-section {
+    height: calc(100dvh - var(--mobile-header-height)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 10px 8px calc(14px + env(safe-area-inset-bottom)) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .server-header,
+  .chat-header {
+    height: var(--mobile-header-height) !important;
+    min-height: var(--mobile-header-height) !important;
+    padding: 0 12px !important;
+  }
+
+  /* Chat takes the full remaining width after server rail. */
+  .chat-panel {
+    grid-column: 2 !important;
+    width: calc(100vw - var(--mobile-rail-width)) !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: grid !important;
+    grid-template-rows:
+      var(--mobile-header-height)
+      auto
+      minmax(0, 1fr)
+      22px
+      auto
+      auto !important;
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  .chat-panel.empty-chat {
+    grid-column: 2 !important;
+    width: calc(100vw - var(--mobile-rail-width)) !important;
+    height: 100dvh !important;
+    padding: 20px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .messages {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 12px 10px !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-row {
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 8px 4px !important;
+    margin-bottom: 6px !important;
+    border-radius: 10px !important;
+  }
+
+  .avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 11px !important;
+  }
+
+  .message-meta {
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .message-meta strong {
+    font-size: 13px !important;
+  }
+
+  .message-meta span {
+    font-size: 11px !important;
+  }
+
+  .message-row p {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* Hover does not exist on phones: actions must be tappable. */
+  .message-actions {
+    display: flex !important;
+    top: 4px !important;
+    right: 6px !important;
+    opacity: 0.85 !important;
+  }
+
+  .message-actions > button {
+    width: 34px !important;
+    height: 32px !important;
+    min-width: 34px !important;
+    min-height: 32px !important;
+  }
+
+  .message-menu {
+    right: 0 !important;
+    min-width: 150px !important;
+    max-width: calc(100vw - var(--mobile-rail-width) - 20px) !important;
+    z-index: 80 !important;
+  }
+
+  .typing-indicator {
+    min-height: 22px !important;
+    padding: 0 12px 4px !important;
+    font-size: 12px !important;
+  }
+
+  .reply-compose {
+    margin: 0 8px !important;
+    padding: 8px 10px !important;
+    border-radius: 10px 10px 0 0 !important;
+    grid-template-columns: minmax(0, 1fr) 36px !important;
+  }
+
+  .message-input-wrap {
+    height: var(--mobile-input-height) !important;
+    min-height: var(--mobile-input-height) !important;
+    margin: 0 8px calc(8px + env(safe-area-inset-bottom)) !important;
+    padding-left: 12px !important;
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    border-radius: 12px !important;
+  }
+
+  .message-input-wrap input {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+
+  .message-input-wrap button {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+
+  /* Friend/channel rows: bigger tap targets. */
+  .friend-row {
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+    margin: 4px 6px !important;
+    min-height: 48px !important;
+  }
+
+  .friend-item {
+    min-height: 48px !important;
+    padding: 6px 8px !important;
+    gap: 10px !important;
+  }
+
+  .friend-remove {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .request-row {
+    grid-template-columns: minmax(0, 1fr) 40px 40px !important;
+    gap: 6px !important;
+    min-height: 44px !important;
+  }
+
+  .request-row button,
+  .friend-add-box button {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .friend-add-box {
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+    gap: 8px !important;
+    margin: 8px 6px !important;
+  }
+
+  .friend-add-box input {
+    height: 42px !important;
+    font-size: 16px !important;
+  }
+
+  /* Modals must fit iOS/Android with keyboard/safe area. */
+  .settings-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+    align-items: center !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-modal,
+  .profile-modal,
+  .create-server-modal {
+    width: min(520px, calc(100vw - 24px)) !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    border-radius: 14px !important;
+  }
+
+  .create-server-top {
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+  }
+
+  .create-server-fields {
+    width: 100% !important;
+  }
+
+  .toast-stack {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .toast {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 520px) {
+  :root {
+    --mobile-rail-width: 52px;
+    --mobile-header-height: 48px;
+    --mobile-input-height: 50px;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 13px !important;
+    font-size: 12px !important;
+  }
+
+  .messages {
+    padding: 10px 8px !important;
+  }
+
+  .message-row {
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .avatar {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .chat-header strong,
+  .server-header strong {
+    font-size: 14px !important;
+  }
+
+  .chat-header-status {
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --mobile-rail-width: 48px;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .message-input-wrap {
+    margin-left: 6px !important;
+    margin-right: 6px !important;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --mobile-header-height: 44px;
+    --mobile-input-height: 46px;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .messages {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+/* ============================================================================
+   Mobile Back Button
+   ============================================================================ */
+
+.mobile-back-btn {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-back-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border: 0;
+    border-radius: 10px;
+    background: #1e1f22;
+    color: #f2f3f5;
+    display: grid;
+    place-items: center;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+
+  .mobile-back-btn:active {
+    background: #5865f2;
+    transform: scale(0.96);
+  }
+
+  .chat-header {
+    gap: 8px !important;
+  }
+
+  .chat-header strong {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+/* ============================================================================
+   FINAL RESPONSIVE FIX
+   Desktop reset + mobile drawer + remove grey resizer artifact
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   PC / Desktop: ab 901px darf KEINE Mobile-Regel greifen
+   -------------------------------------------------------------------------- */
+@media (min-width: 901px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .discord-app {
+    width: 100vw !important;
+    height: 100vh !important;
+    display: grid !important;
+    grid-template-columns: 72px var(--channel-width, 280px) 6px minmax(0, 1fr) !important;
+    grid-template-rows: 100vh !important;
+    overflow: hidden !important;
+    position: static !important;
+  }
+
+  .server-sidebar {
+    position: static !important;
+    grid-column: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: auto !important;
+    padding: 12px 0 !important;
+    gap: 10px !important;
+  }
+
+  .channel-sidebar {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    z-index: auto !important;
+    border-right: 0 !important;
+  }
+
+  .chat-panel {
+    position: static !important;
+    grid-column: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 100vh !important;
+    min-height: 0 !important;
+    max-height: 100vh !important;
+    z-index: auto !important;
+  }
+
+  .layout-resizer {
+    display: block !important;
+    width: 6px !important;
+    height: 100vh !important;
+    min-width: 6px !important;
+    max-width: 6px !important;
+    background: #1f2024 !important;
+  }
+
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  .mobile-back-btn {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile / Tablet: echtes App-Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  :root {
+    --mobile-rail: 56px;
+    --mobile-drawer: min(310px, calc(100vw - var(--mobile-rail)));
+    --mobile-header: 50px;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    background: #313338 !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .discord-app {
+    position: relative !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    display: grid !important;
+    grid-template-columns: var(--mobile-rail) minmax(0, 1fr) !important;
+    grid-template-rows: 100dvh !important;
+    overflow: hidden !important;
+    background: #313338 !important;
+  }
+
+  /* DAS ist der hellgraue Balken/Resizer: auf Mobile komplett weg */
+  .layout-resizer {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Server links IMMER sichtbar */
+  .server-sidebar {
+    grid-column: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+    width: var(--mobile-rail) !important;
+    min-width: var(--mobile-rail) !important;
+    max-width: var(--mobile-rail) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom)) !important;
+    gap: 8px !important;
+    background: #1e1f22 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border-radius: 14px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .server-spacer {
+    flex: 1 0 auto !important;
+    min-height: 12px !important;
+  }
+
+  /* Friend/Channel-Liste als Drawer neben Server-Leiste */
+  .channel-sidebar {
+    position: fixed !important;
+    left: var(--mobile-rail) !important;
+    top: 0 !important;
+    width: var(--mobile-drawer) !important;
+    min-width: var(--mobile-drawer) !important;
+    max-width: var(--mobile-drawer) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 90 !important;
+    background: #2b2d31 !important;
+    border-right: 1px solid #1f2024 !important;
+    box-shadow: 14px 0 34px rgba(0, 0, 0, 0.34) !important;
+    overflow: hidden !important;
+    transform: translateX(0) !important;
+    transition: transform 180ms ease !important;
+  }
+
+  .channel-section {
+    height: calc(100dvh - var(--mobile-header)) !important;
+    max-height: calc(100dvh - var(--mobile-header)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 10px 8px calc(14px + env(safe-area-inset-bottom)) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Wenn Chat offen ist: Liste zur Seite schieben */
+  .discord-app:has(.chat-panel:not(.empty-chat)) .channel-sidebar {
+    transform: translateX(calc(-1 * var(--mobile-drawer))) !important;
+    box-shadow: none !important;
+  }
+
+  /* Wenn Zurück gedrückt wurde und empty-chat aktiv ist: Liste wieder sichtbar */
+  .discord-app:has(.chat-panel.empty-chat) .channel-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  /* Chat rechts neben Server-Leiste */
+  .chat-panel {
+    grid-column: 2 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    width: calc(100vw - var(--mobile-rail)) !important;
+    max-width: calc(100vw - var(--mobile-rail)) !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    background: #313338 !important;
+  }
+
+  .chat-panel.empty-chat {
+    width: calc(100vw - var(--mobile-rail)) !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    padding: 18px !important;
+  }
+
+  .chat-header,
+  .server-header {
+    height: var(--mobile-header) !important;
+    min-height: var(--mobile-header) !important;
+    padding: 0 12px !important;
+  }
+
+  .messages {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 12px 10px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-input-wrap {
+    margin: 0 8px calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Zurück-Button nur Mobile */
+  .mobile-back-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #1e1f22 !important;
+    color: #f2f3f5 !important;
+    display: grid !important;
+    place-items: center !important;
+    margin-right: 4px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-back-btn:active {
+    background: #5865f2 !important;
+    transform: scale(0.96);
+  }
+
+  .chat-header strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .friend-remove {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+/* sehr kleine Geräte */
+@media (max-width: 520px) {
+  :root {
+    --mobile-rail: 52px;
+    --mobile-header: 48px;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 13px !important;
+  }
+
+  .chat-header,
+  .server-header {
+    height: 48px !important;
+    min-height: 48px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --mobile-rail: 48px;
+  }
+
+  .server-logo,
+  .server-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+}
