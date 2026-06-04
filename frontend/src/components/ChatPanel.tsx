@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Hash, MoreHorizontal, Pin, Reply, Send, Trash2, X } from "lucide-react";
 import { useAppStore } from "../store";
+import { useServerStore } from "../store_2";
 import type { ChannelMessage, DirectMessage } from "../types";
 import { API_URL } from "../api";
 
-/* Helpers */
 function assetUrl(path?: string | null): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("http")) return path;
@@ -15,24 +15,23 @@ function initials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-/* Wrapper (keine Hook-Order Probleme) */
 export function ChatPanel() {
-  const activeServerId = useAppStore((s) => s.activeServerId);
+  const activeServerId = useServerStore((s) => s.activeServerId);
   return activeServerId ? <ChatPanelServer /> : <ChatPanelDM />;
 }
 
 /* =========================
    SERVER CHANNEL CHAT
 ========================= */
+
 function ChatPanelServer() {
   const user = useAppStore((s) => s.user);
 
-  const serverDetail = useAppStore((s) => s.serverDetail);
-  const serverChannels = useAppStore((s) => s.serverChannels);
-  const activeChannelId = useAppStore((s) => s.activeChannelId);
-
-  const channelMessages = useAppStore((s) => s.channelMessages);
-  const sendChannelMessage = useAppStore((s) => s.sendChannelMessage);
+  const serverDetail = useServerStore((s) => s.serverDetail);
+  const serverChannels = useServerStore((s) => s.serverChannels);
+  const activeChannelId = useServerStore((s) => s.activeChannelId);
+  const channelMessages = useServerStore((s) => s.channelMessages);
+  const sendChannelMessage = useServerStore((s) => s.sendChannelMessage);
 
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -57,13 +56,15 @@ function ChatPanelServer() {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const clean = text.trim();
     if (!clean) return;
+
     await sendChannelMessage(clean);
     setText("");
-  };
+  }
 
   return (
     <main className="chat-panel">
@@ -72,6 +73,7 @@ function ChatPanelServer() {
           <Hash size={16} />
           {activeChannel.name}
         </strong>
+
         <span className="chat-header-status">{serverDetail?.name ?? ""}</span>
       </header>
 
@@ -126,8 +128,9 @@ function ChatPanelServer() {
 }
 
 /* =========================
-   DM CHAT (dein Style)
+   DM CHAT
 ========================= */
+
 function ChatPanelDM() {
   const [text, setText] = useState("");
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -158,7 +161,10 @@ function ChatPanelDM() {
     return dmTypingByFriend[activeFriendId] ?? null;
   }, [dmTypingByFriend, activeFriendId]);
 
-  const pinnedMessages = useMemo(() => dmMessages.filter((m) => m.pinned), [dmMessages]);
+  const pinnedMessages = useMemo(
+    () => dmMessages.filter((m) => m.pinned),
+    [dmMessages]
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -300,7 +306,9 @@ function ChatPanelDM() {
     <main className="chat-panel">
       <header className="chat-header">
         <strong>{activeFriend.username}</strong>
-        <span className="chat-header-status">{activeFriend.online ? "Online" : "Offline"}</span>
+        <span className="chat-header-status">
+          {activeFriend.online ? "Online" : "Offline"}
+        </span>
       </header>
 
       {pinnedMessages.length > 0 && (
@@ -385,7 +393,9 @@ function ChatPanelDM() {
         <div ref={bottomRef} />
       </section>
 
-      <div className="typing-indicator">{typingName ? `${typingName} schreibt...` : ""}</div>
+      <div className="typing-indicator">
+        {typingName ? `${typingName} schreibt...` : ""}
+      </div>
 
       {replyToMessage && (
         <div className="reply-compose">

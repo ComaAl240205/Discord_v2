@@ -517,18 +517,19 @@ async def create_message(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await ensure_channel_member(data.channel_id, user.id, db)
+    server_id = await ensure_channel_member(data.channel_id, user.id, db)
 
     msg = Message(
         channel_id=data.channel_id,
         author_id=user.id,
         content=data.content,
     )
+
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
 
-    return MessageOut(
+    out = MessageOut(
         id=msg.id,
         channel_id=msg.channel_id,
         author_id=user.id,
@@ -536,6 +537,24 @@ async def create_message(
         content=msg.content,
         created_at=msg.created_at,
     )
+
+    payload = {
+        "type": "channel:message_new",
+        "server_id": server_id,
+        "channel_id": data.channel_id,
+        "message": out.model_dump(mode="json"),
+    }
+
+    members_res = await db.execute(
+        select(ServerMember.user_id).where(ServerMember.server_id == server_id)
+    )
+
+    member_user_ids = list(members_res.scalars().all())
+
+    for member_user_id in member_user_ids:
+        await manager.send_to_user(member_user_id, payload)
+
+    return out
 
 
 # -------------------------------------------------------
@@ -646,21 +665,61 @@ async def accept_friend_request(
             FriendRequest.status == "pending",
         )
     )
+
     req = result.scalar_one_or_none()
+
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
+    sender_res = await db.execute(
+        select(User).where(User.id == req.sender_id)
+    )
+
+    sender = sender_res.scalar_one_or_none()
+
+    if not sender:
+        raise HTTPException(status_code=404, detail="Sender not found")
+
     req.status = "accepted"
+
     db.add(Friendship(user_id=req.receiver_id, friend_id=req.sender_id))
     db.add(Friendship(user_id=req.sender_id, friend_id=req.receiver_id))
+
     await db.commit()
 
-    await manager.send_to_user(
-        req.sender_id,
-        {"type": "friend_request:accepted", "friend": {"id": user.id, "username": user.username}},
-    )
-    return {"status": "accepted"}
+    friend_for_receiver = {
+        "id": sender.id,
+        "username": sender.username,
+        "online": manager.is_user_online(sender.id),
+        "avatar_url": sender.avatar_url,
+    }
 
+    friend_for_sender = {
+        "id": user.id,
+        "username": user.username,
+        "online": manager.is_user_online(user.id),
+        "avatar_url": user.avatar_url,
+    }
+
+    await manager.send_to_user(
+        user.id,
+        {
+            "type": "friend:added",
+            "friend": friend_for_receiver,
+            "request_id": req.id,
+        },
+    )
+
+    await manager.send_to_user(
+        sender.id,
+        {
+            "type": "friend:added",
+            "friend": friend_for_sender,
+            "request_id": req.id,
+        },
+    )
+
+    return {"status": "accepted"}
 
 @router.post("/friends/requests/{request_id}/decline")
 async def decline_friend_request(
@@ -732,6 +791,7 @@ async def remove_friend(
 
     r1 = rel1.scalar_one_or_none()
     r2 = rel2.scalar_one_or_none()
+
     if not r1 or not r2:
         raise HTTPException(status_code=404, detail="Not friends")
 
@@ -739,8 +799,24 @@ async def remove_friend(
     await db.delete(r2)
     await db.commit()
 
-    await manager.send_to_user(friend_id, {"type": "friend:removed", "userId": user.id})
+    await manager.send_to_user(
+        user.id,
+        {
+            "type": "friend:removed",
+            "userId": friend_id,
+        },
+    )
+
+    await manager.send_to_user(
+        friend_id,
+        {
+            "type": "friend:removed",
+            "userId": user.id,
+        },
+    )
+
     return {"status": "removed"}
+
 
 
 # -------------------------------------------------------

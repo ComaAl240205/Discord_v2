@@ -4,6 +4,8 @@ import { ChannelSidebar } from "./ChannelSidebar";
 import { ChatPanel } from "./ChatPanel";
 import { CreateServerModal } from "./CreateServerModal";
 import { ToastStack } from "./Toast";
+import { ServerRealtimeBridge } from "./ServerRealtimeBridge";
+import { ServerSettingsModal } from "./ServerSettingsModal";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -17,12 +19,14 @@ function getInitialSidebarWidth() {
 
 export function DiscordLayout() {
   const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
+  const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
 
-  function startResize(event: React.MouseEvent<HTMLDivElement>) {
+  function startResize(event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) {
     event.preventDefault();
 
-    function onMove(moveEvent: MouseEvent) {
-      const next = clamp(moveEvent.clientX - 72, 240, 420);
+    function onMove(moveEvent: MouseEvent | TouchEvent) {
+      const x = moveEvent instanceof TouchEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const next = clamp(x - 72, 240, 420);
       setSidebarWidth(next);
       localStorage.setItem("friendSidebarWidth", String(next));
     }
@@ -30,12 +34,16 @@ export function DiscordLayout() {
     function onUp() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
       document.body.classList.remove("is-resizing");
     }
 
     document.body.classList.add("is-resizing");
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onUp);
   }
 
   return (
@@ -48,12 +56,25 @@ export function DiscordLayout() {
       }
     >
       <ServerSidebar />
-      <ChannelSidebar />
-      <div className="layout-resizer" onMouseDown={startResize} />
+
+      <ChannelSidebar
+        onOpenServerSettings={() => setServerSettingsOpen(true)}
+      />
+
+      <div className="layout-resizer" onMouseDown={startResize} onTouchStart={startResize} />
+
       <ChatPanel />
 
       <CreateServerModal />
+
       <ToastStack />
+
+      <ServerRealtimeBridge />
+
+      <ServerSettingsModal
+        open={serverSettingsOpen}
+        onClose={() => setServerSettingsOpen(false)}
+      />
     </div>
   );
 }

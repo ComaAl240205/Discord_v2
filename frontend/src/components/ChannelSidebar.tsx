@@ -1,8 +1,14 @@
 import { Check, Hash, Plus, UserPlus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAppStore } from "../store";
+import { useServerStore } from "../store_2";
 import type { Channel } from "../types";
 import { API_URL } from "../api";
+import { ServerSettingsButton } from "./ServerSettingsButton";
+
+type ChannelSidebarProps = {
+  onOpenServerSettings: () => void;
+};
 
 function assetUrl(path?: string | null): string | undefined {
   if (!path) return undefined;
@@ -10,25 +16,17 @@ function assetUrl(path?: string | null): string | undefined {
   return `${API_URL}${path}`;
 }
 
-export function ChannelSidebar() {
+export function ChannelSidebar({ onOpenServerSettings }: ChannelSidebarProps) {
   const [username, setUsername] = useState("");
   const [newChannelName, setNewChannelName] = useState("");
 
+  /* App Store: User, Friends, DM */
   const user = useAppStore((s) => s.user);
-
-  // DM
   const friends = useAppStore((s) => s.friends);
   const requests = useAppStore((s) => s.requests);
   const activeFriendId = useAppStore((s) => s.activeFriendId);
   const unreadByFriend = useAppStore((s) => s.unreadByFriend);
 
-  // Server
-  const activeServerId = useAppStore((s) => s.activeServerId);
-  const serverDetail = useAppStore((s) => s.serverDetail);
-  const serverChannels = useAppStore((s) => s.serverChannels);
-  const activeChannelId = useAppStore((s) => s.activeChannelId);
-
-  // Actions
   const sendFriendRequest = useAppStore((s) => s.sendFriendRequest);
   const acceptRequest = useAppStore((s) => s.acceptRequest);
   const declineRequest = useAppStore((s) => s.declineRequest);
@@ -36,53 +34,69 @@ export function ChannelSidebar() {
   const openProfile = useAppStore((s) => s.openProfile);
   const removeFriend = useAppStore((s) => s.removeFriend);
 
-  const addMemberToServer = useAppStore((s) => s.addMemberToServer);
-  const removeMemberFromServer = useAppStore((s) => s.removeMemberFromServer);
-  const deleteActiveServer = useAppStore((s) => s.deleteActiveServer);
-
-  const loadServerChannels = useAppStore((s) => s.loadServerChannels);
-  const selectChannel = useAppStore((s) => s.selectChannel);
-  const createChannel = useAppStore((s) => s.createChannel);
-  const deleteChannel = useAppStore((s) => s.deleteChannel);
-
   const error = useAppStore((s) => s.error);
   const info = useAppStore((s) => s.info);
+
+  /* Server Store: Server, Channels, Members */
+  const activeServerId = useServerStore((s) => s.activeServerId);
+  const serverDetail = useServerStore((s) => s.serverDetail);
+  const serverChannels = useServerStore((s) => s.serverChannels);
+  const activeChannelId = useServerStore((s) => s.activeChannelId);
+
+  const selectChannel = useServerStore((s) => s.selectChannel);
+  const createChannel = useServerStore((s) => s.createChannel);
+  const deleteChannel = useServerStore((s) => s.deleteChannel);
+  const addMemberToServer = useServerStore((s) => s.addMemberToServer);
+  const removeMemberFromServer = useServerStore((s) => s.removeMemberFromServer);
 
   async function handleAddFriend() {
     await sendFriendRequest(username);
     setUsername("");
   }
 
+  async function onCreateChannel() {
+    const name = newChannelName.trim();
+    if (!name) return;
+
+    await createChannel(name);
+    setNewChannelName("");
+  }
+
   const isServerMode = Boolean(activeServerId);
 
-  const isOwner = useMemo(() => {
-    if (!isServerMode || !serverDetail || !user) return false;
-    return serverDetail.owner_id === user.id;
+  const myRole = useMemo(() => {
+    if (!isServerMode || !serverDetail || !user) return "member";
+
+    const member = serverDetail.members.find((m) => m.user_id === user.id);
+    return member?.role ?? "member";
   }, [isServerMode, serverDetail, user]);
+
+  const canManageServer = myRole === "owner" || myRole === "admin";
 
   const inviteableFriends = useMemo(() => {
     if (!isServerMode || !serverDetail) return [];
+
     const memberIds = new Set(serverDetail.members.map((m) => m.user_id));
     return friends.filter((f) => !memberIds.has(f.id));
   }, [isServerMode, serverDetail, friends]);
 
-  async function onCreateChannel() {
-    const name = newChannelName.trim();
-    if (!name) return;
-    await createChannel(name);
-    setNewChannelName("");
-    await loadServerChannels();
-  }
+  /* ==========================================================================
+     Server Mode
+     ========================================================================== */
 
   if (isServerMode) {
     return (
       <aside className="channel-sidebar">
-        <header className="server-header">
+        <header className="server-header server-header-with-action">
           <strong>{serverDetail?.name ?? "Server"}</strong>
+          <ServerSettingsButton onClick={onOpenServerSettings} />
         </header>
 
         <section className="channel-section">
-          {serverDetail?.description ? <div className="side-info">{serverDetail.description}</div> : null}
+          {serverDetail?.description ? (
+            <div className="side-info">{serverDetail.description}</div>
+          ) : null}
+
           {info && <div className="side-info">{info}</div>}
           {error && <div className="side-error">{error}</div>}
 
@@ -94,15 +108,27 @@ export function ChannelSidebar() {
             serverChannels.map((ch: Channel) => (
               <div
                 key={ch.id}
-                className={"friend-row " + (activeChannelId === ch.id ? "active" : "")}
+                className={
+                  "friend-row " + (activeChannelId === ch.id ? "active" : "")
+                }
               >
                 <button
                   className="friend-item"
                   type="button"
                   onClick={() => void selectChannel(ch.id)}
                 >
-                  <div className="friend-avatar" style={{ width: 28, height: 28 }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 10, background: "#313338" }}>
+                  <div
+                    className="friend-avatar"
+                    style={{ width: 28, height: 28 }}
+                  >
+                    <span
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 10,
+                        background: "#313338"
+                      }}
+                    >
                       <Hash size={14} />
                     </span>
                   </div>
@@ -112,7 +138,7 @@ export function ChannelSidebar() {
                   </span>
                 </button>
 
-                {isOwner && (
+                {canManageServer && (
                   <button
                     type="button"
                     className="friend-remove"
@@ -126,7 +152,7 @@ export function ChannelSidebar() {
             ))
           )}
 
-          {isOwner && (
+          {canManageServer && (
             <>
               <p className="section-title">Channel erstellen</p>
 
@@ -137,6 +163,7 @@ export function ChannelSidebar() {
                   placeholder="channel-name"
                   autoComplete="off"
                 />
+
                 <button onClick={() => void onCreateChannel()} title="Erstellen">
                   <Plus size={17} />
                 </button>
@@ -150,17 +177,16 @@ export function ChannelSidebar() {
                 inviteableFriends.map((f) => (
                   <div key={f.id} className="request-row">
                     <span>{f.username}</span>
-                    <button title="Hinzufügen" onClick={() => void addMemberToServer(f.id)}>
+
+                    <button
+                      title="Hinzufügen"
+                      onClick={() => void addMemberToServer(f.id)}
+                    >
                       <Plus size={14} />
                     </button>
                   </div>
                 ))
               )}
-
-              <p className="section-title">Server</p>
-              <button className="server-danger-btn" onClick={() => void deleteActiveServer()}>
-                Server löschen
-              </button>
             </>
           )}
 
@@ -168,11 +194,18 @@ export function ChannelSidebar() {
 
           {serverDetail?.members?.length ? (
             serverDetail.members.map((m) => {
-              const canKick = isOwner && m.role !== "owner";
+              const canKick =
+                canManageServer && m.role !== "owner" && m.user_id !== user?.id;
+
               return (
                 <div key={m.id} className="request-row">
                   <span>
-                    {m.username} {m.role === "owner" ? "(Owner)" : ""}
+                    {m.username}{" "}
+                    {m.role === "owner"
+                      ? "(Owner)"
+                      : m.role === "admin"
+                        ? "(Admin)"
+                        : ""}
                   </span>
 
                   {canKick ? (
@@ -196,6 +229,10 @@ export function ChannelSidebar() {
       </aside>
     );
   }
+
+  /* ==========================================================================
+     DM Mode
+     ========================================================================== */
 
   return (
     <aside className="channel-sidebar">
@@ -224,7 +261,9 @@ export function ChannelSidebar() {
 
         <p className="section-title">Anfragen</p>
 
-        {requests.length === 0 && <div className="empty-small">Keine Anfragen</div>}
+        {requests.length === 0 && (
+          <div className="empty-small">Keine Anfragen</div>
+        )}
 
         {requests.map((req) => (
           <div key={req.id} className="request-row">
@@ -242,7 +281,9 @@ export function ChannelSidebar() {
 
         <p className="section-title">Direktnachrichten</p>
 
-        {friends.length === 0 && <div className="empty-small">Noch keine Freunde</div>}
+        {friends.length === 0 && (
+          <div className="empty-small">Noch keine Freunde</div>
+        )}
 
         {friends.map((friend) => {
           const avatar = assetUrl(friend.avatar_url ?? null);
@@ -251,9 +292,15 @@ export function ChannelSidebar() {
           return (
             <div
               key={friend.id}
-              className={"friend-row " + (activeFriendId === friend.id ? "active" : "")}
+              className={
+                "friend-row " + (activeFriendId === friend.id ? "active" : "")
+              }
             >
-              <button className="friend-item" onClick={() => void openDm(friend.id)} type="button">
+              <button
+                className="friend-item"
+                onClick={() => void openDm(friend.id)}
+                type="button"
+              >
                 <div
                   className="friend-avatar"
                   onClick={(e) => {
@@ -263,13 +310,25 @@ export function ChannelSidebar() {
                   title="Profil ansehen"
                   role="button"
                 >
-                  {avatar ? <img src={avatar} alt="avatar" /> : <span>{friend.username.slice(0, 2).toUpperCase()}</span>}
-                  <span className={"status-dot " + (friend.online ? "online" : "offline")} />
+                  {avatar ? (
+                    <img src={avatar} alt="avatar" />
+                  ) : (
+                    <span>{friend.username.slice(0, 2).toUpperCase()}</span>
+                  )}
+
+                  <span
+                    className={
+                      "status-dot " + (friend.online ? "online" : "offline")
+                    }
+                  />
                 </div>
 
                 <span className="friend-name-row">
                   <span className="friend-name">{friend.username}</span>
-                  {unread > 0 && <span className="friend-unread">{unread}</span>}
+
+                  {unread > 0 && (
+                    <span className="friend-unread">{unread}</span>
+                  )}
                 </span>
               </button>
 

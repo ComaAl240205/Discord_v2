@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Dict, Set
 from urllib.parse import parse_qs
@@ -8,7 +10,7 @@ from sqlalchemy import select
 
 from app.config import JWT_ALGORITHM, JWT_SECRET
 from app.db import AsyncSessionLocal
-from app.models import Channel, Friendship, Message, Server, User
+from app.models import Channel, Friendship, Message, Server, ServerMember, User
 
 ws_router = APIRouter()
 
@@ -139,13 +141,18 @@ async def get_user_from_token(token: str) -> User | None:
 
 
 async def user_can_access_channel(user_id: int, channel_id: int) -> bool:
+    """
+    Prüft, ob der User Mitglied im Server des Channels ist.
+    Wichtig: Nicht nur Owner, sondern alle Server-Member dürfen lesen/schreiben.
+    """
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(Channel)
             .join(Server, Server.id == Channel.server_id)
+            .join(ServerMember, ServerMember.server_id == Server.id)
             .where(
                 Channel.id == channel_id,
-                Server.owner_id == user_id
+                ServerMember.user_id == user_id,
             )
         )
 
@@ -153,12 +160,30 @@ async def user_can_access_channel(user_id: int, channel_id: int) -> bool:
         return channel is not None
 
 
+async def get_channel_server_id(channel_id: int) -> int | None:
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Channel.server_id).where(Channel.id == channel_id)
+        )
+
+        return result.scalar_one_or_none()
+
+
+async def get_server_member_user_ids(server_id: int) -> list[int]:
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(ServerMember.user_id).where(ServerMember.server_id == server_id)
+        )
+
+        return list(result.scalars().all())
+
+
 async def users_are_friends(user_id: int, friend_id: int) -> bool:
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(Friendship).where(
                 Friendship.user_id == user_id,
-                Friendship.friend_id == friend_id
+                Friendship.friend_id == friend_id,
             )
         )
 
@@ -178,11 +203,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await manager.connect(websocket, user.id)
 
-    # Alle Clients erfahren: dieser User ist online.
+    # Presence live an alle.
     await manager.broadcast_all({
         "type": "presence:update",
         "userId": user.id,
-        "online": True
+        "online": True,
     })
 
     try:
@@ -190,6 +215,9 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_json()
             msg_type = data.get("type")
 
+            # -------------------------------------------------------
+            # Channel join
+            # -------------------------------------------------------
             if msg_type == "channel:join":
                 try:
                     channel_id = int(data.get("channel_id"))
@@ -199,7 +227,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not await user_can_access_channel(user.id, channel_id):
                     await websocket.send_json({
                         "type": "error",
-                        "message": "No access to channel"
+                        "message": "No access to channel",
                     })
                     continue
 
@@ -207,9 +235,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 await websocket.send_json({
                     "type": "channel:joined",
-                    "channel_id": channel_id
+                    "channel_id": channel_id,
                 })
 
+            # -------------------------------------------------------
+            # Channel message via WebSocket
+            # Optional. Dein REST /messages Endpoint kann weiterhin genutzt werden.
+            # Beide Wege senden am Ende channel:message_new.
+            # -------------------------------------------------------
             elif msg_type == "message:create":
                 try:
                     channel_id = int(data.get("channel_id"))
@@ -224,22 +257,34 @@ async def websocket_endpoint(websocket: WebSocket):
                 if len(content) > 5000:
                     await websocket.send_json({
                         "type": "error",
-                        "message": "Message too long"
+                        "message": "Message too long",
                     })
                     continue
 
                 if not await user_can_access_channel(user.id, channel_id):
                     await websocket.send_json({
                         "type": "error",
-                        "message": "No access to channel"
+                        "message": "No access to channel",
                     })
                     continue
 
                 async with AsyncSessionLocal() as db:
+                    channel_result = await db.execute(
+                        select(Channel).where(Channel.id == channel_id)
+                    )
+                    channel = channel_result.scalar_one_or_none()
+
+                    if not channel:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Channel not found",
+                        })
+                        continue
+
                     msg = Message(
                         channel_id=channel_id,
                         author_id=user.id,
-                        content=content
+                        content=content,
                     )
 
                     db.add(msg)
@@ -247,21 +292,36 @@ async def websocket_endpoint(websocket: WebSocket):
                     await db.refresh(msg)
 
                     payload = {
-                        "type": "message:new",
+                        "type": "channel:message_new",
+                        "server_id": channel.server_id,
+                        "channel_id": msg.channel_id,
                         "message": {
                             "id": msg.id,
-                            "channelId": msg.channel_id,
-                            "authorId": user.id,
+                            "channel_id": msg.channel_id,
+                            "author_id": user.id,
                             "author": user.username,
                             "content": msg.content,
-                            "createdAt": msg.created_at.isoformat()
-                            if msg.created_at
-                            else datetime.utcnow().isoformat()
-                        }
+                            "created_at": (
+                                msg.created_at.isoformat()
+                                if msg.created_at
+                                else datetime.utcnow().isoformat()
+                            ),
+                        },
                     }
 
-                await manager.broadcast_channel(channel_id, payload)
+                    members_result = await db.execute(
+                        select(ServerMember.user_id).where(
+                            ServerMember.server_id == channel.server_id
+                        )
+                    )
+                    member_user_ids = list(members_result.scalars().all())
 
+                for member_user_id in member_user_ids:
+                    await manager.send_to_user(member_user_id, payload)
+
+            # -------------------------------------------------------
+            # Channel typing
+            # -------------------------------------------------------
             elif msg_type == "typing":
                 try:
                     channel_id = int(data.get("channel_id"))
@@ -273,17 +333,28 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not await user_can_access_channel(user.id, channel_id):
                     continue
 
-                await manager.broadcast_channel(
-                    channel_id,
-                    {
-                        "type": "typing:update",
-                        "channelId": channel_id,
-                        "userId": user.id,
-                        "username": user.username,
-                        "isTyping": is_typing
-                    }
-                )
+                server_id = await get_channel_server_id(channel_id)
+                if not server_id:
+                    continue
 
+                member_user_ids = await get_server_member_user_ids(server_id)
+
+                payload = {
+                    "type": "channel:typing",
+                    "server_id": server_id,
+                    "channel_id": channel_id,
+                    "user_id": user.id,
+                    "username": user.username,
+                    "is_typing": is_typing,
+                }
+
+                for member_user_id in member_user_ids:
+                    if member_user_id != user.id:
+                        await manager.send_to_user(member_user_id, payload)
+
+            # -------------------------------------------------------
+            # DM typing
+            # -------------------------------------------------------
             elif msg_type == "dm:typing":
                 try:
                     receiver_id = int(data.get("receiver_id"))
@@ -301,8 +372,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "dm:typing",
                         "userId": user.id,
                         "username": user.username,
-                        "isTyping": is_typing
-                    }
+                        "isTyping": is_typing,
+                    },
                 )
 
     except WebSocketDisconnect:
@@ -311,6 +382,5 @@ async def websocket_endpoint(websocket: WebSocket):
         await manager.broadcast_all({
             "type": "presence:update",
             "userId": user.id,
-            "online": manager.is_user_online(user.id)
+            "online": manager.is_user_online(user.id),
         })
-    

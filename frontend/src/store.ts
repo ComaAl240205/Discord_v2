@@ -2,13 +2,9 @@ import { create } from "zustand";
 import { api } from "./api";
 import { connectSocket, disconnectSocket, sendSocket } from "./socket";
 import type {
-  Channel,
-  ChannelMessage,
   DirectMessage,
   Friend,
   FriendRequest,
-  Server,
-  ServerDetail,
   User,
   UserPublic
 } from "./types";
@@ -90,7 +86,9 @@ function normalizeDm(raw: any): DirectMessage {
 
 function getOtherUserId(message: DirectMessage, currentUserId?: number | null) {
   if (!currentUserId) return null;
-  return message.sender_id === currentUserId ? message.receiver_id : message.sender_id;
+  return message.sender_id === currentUserId
+    ? message.receiver_id
+    : message.sender_id;
 }
 
 function getErrorMessage(err: unknown, fallback: string) {
@@ -102,6 +100,7 @@ function notifyDesktop(title: string, body: string) {
   try {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
+
     // eslint-disable-next-line no-new
     new Notification(title, { body });
   } catch {
@@ -126,102 +125,64 @@ type AppState = {
   friends: Friend[];
   requests: FriendRequest[];
 
-  // DM
   activeFriendId: number | null;
   dmMessages: DirectMessage[];
   dmTypingByFriend: Record<number, string | null>;
   replyToMessage: DirectMessage | null;
   unreadByFriend: Record<number, number>;
 
-  // UI
   settingsOpen: boolean;
+
   loading: boolean;
   error: string | null;
   info: string | null;
 
-  // Toasts
   toasts: Toast[];
   addToast: (title: string, body: string) => void;
   removeToast: (id: number) => void;
 
-  // Profile modal
   profileOpen: boolean;
   profileUser: UserPublic | null;
 
-  // Guards
   bootstrapping: boolean;
   friendsLoading: boolean;
   requestsLoading: boolean;
 
-  // Servers
-  servers: Server[];
-  activeServerId: number | null;
-  serverDetail: ServerDetail | null;
-
-  // Channels
-  serverChannels: Channel[];
-  activeChannelId: number | null;
-  channelMessages: ChannelMessage[];
-
-  // Modal
-  createServerOpen: boolean;
-
-  // Auth
   bootstrap: () => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 
-  // Realtime
   connectRealtime: () => void;
   handleRealtimeEvent: (event: any) => void;
 
-  // Friends
   loadFriends: () => Promise<void>;
   loadRequests: () => Promise<void>;
+
   sendFriendRequest: (username: string) => Promise<void>;
   acceptRequest: (id: number) => Promise<void>;
   declineRequest: (id: number) => Promise<void>;
   removeFriend: (friendId: number) => Promise<void>;
 
-  // DMs
   openDm: (friendId: number) => Promise<void>;
   sendDm: (content: string) => Promise<void>;
   sendDmTyping: (isTyping: boolean) => void;
+
   setReplyToMessage: (message: DirectMessage | null) => void;
   deleteDm: (messageId: number) => Promise<void>;
   togglePinDm: (messageId: number) => Promise<void>;
 
-  // Settings
   setSettingsOpen: (open: boolean) => void;
   updateUsername: (username: string, bio?: string | null) => Promise<void>;
   uploadAvatar: (file: File) => Promise<void>;
 
-  // Profile
   openProfile: (userId: number) => Promise<void>;
   closeProfile: () => void;
-
-  // Server UI
-  setCreateServerOpen: (open: boolean) => void;
-
-  // Server actions
-  loadServers: () => Promise<void>;
-  selectServer: (serverId: number | null) => Promise<void>;
-  createServer: (name: string, description: string, avatar?: File | null) => Promise<void>;
-  addMemberToServer: (userId: number) => Promise<void>;
-  removeMemberFromServer: (userId: number) => Promise<void>;
-  deleteActiveServer: () => Promise<void>;
-
-  // Channel actions
-  loadServerChannels: () => Promise<void>;
-  selectChannel: (channelId: number) => Promise<void>;
-  createChannel: (name: string) => Promise<void>;
-  deleteChannel: (channelId: number) => Promise<void>;
-
-  // Channel messages
-  loadChannelMessages: (channelId: number) => Promise<void>;
-  sendChannelMessage: (content: string) => Promise<void>;
 };
+
+/* ============================================================================
+   Store
+   ============================================================================ */
 
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
@@ -237,11 +198,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   unreadByFriend: {},
 
   settingsOpen: false,
+
   loading: false,
   error: null,
   info: null,
 
   toasts: [],
+
   profileOpen: false,
   profileUser: null,
 
@@ -249,48 +212,57 @@ export const useAppStore = create<AppState>((set, get) => ({
   friendsLoading: false,
   requestsLoading: false,
 
-  servers: [],
-  activeServerId: null,
-  serverDetail: null,
+  /* ==========================================================================
+     Toasts
+     ========================================================================== */
 
-  serverChannels: [],
-  activeChannelId: null,
-  channelMessages: [],
-
-  createServerOpen: false,
-
-  /* Toasts */
   addToast(title, body) {
     set({
       toasts: [
         ...get().toasts,
-        { id: Date.now() + Math.floor(Math.random() * 1000000), title, body }
+        {
+          id: Date.now() + Math.floor(Math.random() * 1000000),
+          title,
+          body
+        }
       ]
     });
   },
 
   removeToast(id) {
-    set({ toasts: get().toasts.filter((t) => t.id !== id) });
+    set({
+      toasts: get().toasts.filter((t) => t.id !== id)
+    });
   },
 
-  /* Auth */
+  /* ==========================================================================
+     Auth
+     ========================================================================== */
+
   async bootstrap() {
     const token = localStorage.getItem("token");
     if (!token) return;
     if (get().bootstrapping) return;
 
     try {
-      set({ bootstrapping: true, loading: true, token, error: null, info: null });
+      set({
+        bootstrapping: true,
+        loading: true,
+        token,
+        error: null,
+        info: null
+      });
 
       const user = normalizeUser(await api.me());
       set({ user });
 
       get().connectRealtime();
 
+      // Initial Load ist okay. Das ist kein Polling.
       await Promise.all([get().loadFriends(), get().loadRequests()]);
-      await get().loadServers();
     } catch {
       localStorage.removeItem("token");
+
       set({
         user: null,
         token: null,
@@ -301,12 +273,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         dmTypingByFriend: {},
         replyToMessage: null,
         unreadByFriend: {},
-        servers: [],
-        activeServerId: null,
-        serverDetail: null,
-        serverChannels: [],
-        activeChannelId: null,
-        channelMessages: [],
         settingsOpen: false,
         loading: false,
         error: null,
@@ -316,35 +282,51 @@ export const useAppStore = create<AppState>((set, get) => ({
         profileUser: null,
         bootstrapping: false,
         friendsLoading: false,
-        requestsLoading: false,
-        createServerOpen: false
+        requestsLoading: false
       });
     } finally {
-      set({ loading: false, bootstrapping: false });
+      set({
+        loading: false,
+        bootstrapping: false
+      });
     }
   },
 
   async register(username, password) {
     const cleanUsername = username.trim();
+
     if (!cleanUsername || !password) {
       set({ error: "Username oder Passwort fehlt" });
       return;
     }
 
-    set({ loading: true, error: null, info: null });
+    set({
+      loading: true,
+      error: null,
+      info: null
+    });
 
     try {
       await api.register(cleanUsername, password);
-      const tokenData = (await api.login(cleanUsername, password)) as { access_token: string; token_type: string };
+
+      const tokenData = (await api.login(cleanUsername, password)) as {
+        access_token: string;
+        token_type: string;
+      };
+
       localStorage.setItem("token", tokenData.access_token);
 
       const user = normalizeUser(await api.me());
-      set({ token: tokenData.access_token, user });
+
+      set({
+        token: tokenData.access_token,
+        user
+      });
 
       get().connectRealtime();
 
+      // Initial Load nach Login.
       await Promise.all([get().loadFriends(), get().loadRequests()]);
-      await get().loadServers();
     } catch (err) {
       set({ error: getErrorMessage(err, "Register failed") });
     } finally {
@@ -354,24 +336,37 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   async login(username, password) {
     const cleanUsername = username.trim();
+
     if (!cleanUsername || !password) {
       set({ error: "Username oder Passwort fehlt" });
       return;
     }
 
-    set({ loading: true, error: null, info: null });
+    set({
+      loading: true,
+      error: null,
+      info: null
+    });
 
     try {
-      const tokenData = (await api.login(cleanUsername, password)) as { access_token: string; token_type: string };
+      const tokenData = (await api.login(cleanUsername, password)) as {
+        access_token: string;
+        token_type: string;
+      };
+
       localStorage.setItem("token", tokenData.access_token);
 
       const user = normalizeUser(await api.me());
-      set({ token: tokenData.access_token, user });
+
+      set({
+        token: tokenData.access_token,
+        user
+      });
 
       get().connectRealtime();
 
+      // Initial Load nach Login.
       await Promise.all([get().loadFriends(), get().loadRequests()]);
-      await get().loadServers();
     } catch (err) {
       set({ error: getErrorMessage(err, "Login failed") });
     } finally {
@@ -382,6 +377,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout() {
     disconnectSocket();
     localStorage.removeItem("token");
+
     set({
       user: null,
       token: null,
@@ -392,12 +388,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       dmTypingByFriend: {},
       replyToMessage: null,
       unreadByFriend: {},
-      servers: [],
-      activeServerId: null,
-      serverDetail: null,
-      serverChannels: [],
-      activeChannelId: null,
-      channelMessages: [],
       settingsOpen: false,
       loading: false,
       error: null,
@@ -407,12 +397,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       profileUser: null,
       bootstrapping: false,
       friendsLoading: false,
-      requestsLoading: false,
-      createServerOpen: false
+      requestsLoading: false
     });
   },
 
-  /* Realtime */
+  /* ==========================================================================
+     Realtime
+     ========================================================================== */
+
   connectRealtime() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -429,9 +421,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         friends: get().friends.map((friend) =>
-          friend.id === userId ? { ...friend, online: Boolean(event.online) } : friend
+          friend.id === userId
+            ? { ...friend, online: Boolean(event.online) }
+            : friend
         )
       });
+
       return;
     }
 
@@ -456,13 +451,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         friends: get().friends.map((friend) =>
           friend.id === updatedUser.id
-            ? { ...friend, username: updatedUser.username, avatar_url: updatedUser.avatar_url ?? null }
+            ? {
+                ...friend,
+                username: updatedUser.username,
+                avatar_url: updatedUser.avatar_url ?? null
+              }
             : friend
         ),
 
         dmMessages: get().dmMessages.map((msg) =>
           msg.sender_id === updatedUser.id
-            ? { ...msg, sender_username: updatedUser.username, sender_avatar_url: updatedUser.avatar_url ?? null }
+            ? {
+                ...msg,
+                sender_username: updatedUser.username,
+                sender_avatar_url: updatedUser.avatar_url ?? null
+              }
             : msg
         ),
 
@@ -476,6 +479,7 @@ export const useAppStore = create<AppState>((set, get) => ({
               }
             : currentProfile
       });
+
       return;
     }
 
@@ -489,6 +493,22 @@ export const useAppStore = create<AppState>((set, get) => ({
           [friendId]: event.isTyping ? event.username : null
         }
       });
+
+      return;
+    }
+
+    if (event.type === "friend:added") {
+      const friend = normalizeFriend(event.friend);
+      const exists = get().friends.some((f) => f.id === friend.id);
+
+      set({
+        friends: exists ? get().friends : [...get().friends, friend],
+        requests: event.request_id
+          ? get().requests.filter((r) => r.id !== Number(event.request_id))
+          : get().requests,
+        info: `${friend.username} ist jetzt dein Freund`
+      });
+
       return;
     }
 
@@ -501,11 +521,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         requests: [req, ...get().requests],
         info: `${req.sender_username} hat dir eine Anfrage gesendet`
       });
+
       return;
     }
 
+    // Legacy-Fallback. Kein loadFriends mehr.
     if (event.type === "friend_request:accepted") {
-      void get().loadFriends();
       set({ info: "Freundschaftsanfrage wurde angenommen" });
       return;
     }
@@ -515,7 +536,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!Number.isFinite(removedUserId)) return;
 
       const active = get().activeFriendId;
-      const { [removedUserId]: _removedUnread, ...restUnread } = get().unreadByFriend;
+      const { [removedUserId]: _removedUnread, ...restUnread } =
+        get().unreadByFriend;
 
       set({
         friends: get().friends.filter((f) => f.id !== removedUserId),
@@ -524,6 +546,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         dmMessages: active === removedUserId ? [] : get().dmMessages,
         replyToMessage: active === removedUserId ? null : get().replyToMessage
       });
+
       return;
     }
 
@@ -542,18 +565,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (activeFriendId === otherUserId) {
         set({
           dmMessages: [...get().dmMessages, incoming],
-          dmTypingByFriend: { ...get().dmTypingByFriend, [otherUserId]: null }
+          dmTypingByFriend: {
+            ...get().dmTypingByFriend,
+            [otherUserId]: null
+          }
         });
       } else {
         const current = get().unreadByFriend[otherUserId] ?? 0;
 
         set({
-          unreadByFriend: { ...get().unreadByFriend, [otherUserId]: current + 1 }
+          unreadByFriend: {
+            ...get().unreadByFriend,
+            [otherUserId]: current + 1
+          }
         });
 
         get().addToast(incoming.sender_username, incoming.content);
         notifyDesktop(incoming.sender_username, incoming.content);
       }
+
       return;
     }
 
@@ -563,14 +593,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         dmMessages: get().dmMessages.filter((m) => m.id !== messageId),
-        replyToMessage: get().replyToMessage?.id === messageId ? null : get().replyToMessage
+        replyToMessage:
+          get().replyToMessage?.id === messageId ? null : get().replyToMessage
       });
+
       return;
     }
 
     if (event.type === "dm:pin") {
       const incoming = normalizeDm(event.message);
-      set({ dmMessages: get().dmMessages.map((m) => (m.id === incoming.id ? incoming : m)) });
+
+      set({
+        dmMessages: get().dmMessages.map((m) =>
+          m.id === incoming.id ? incoming : m
+        )
+      });
+
       return;
     }
 
@@ -579,16 +617,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  /* Friends */
+  /* ==========================================================================
+     Friends
+     ========================================================================== */
+
   async loadFriends() {
     if (get().friendsLoading) return;
 
     try {
       set({ friendsLoading: true });
+
       const rows = (await api.friends()) as any[];
       set({ friends: rows.map(normalizeFriend) });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Freunde konnten nicht geladen werden") });
+      set({
+        error: getErrorMessage(err, "Freunde konnten nicht geladen werden")
+      });
     } finally {
       set({ friendsLoading: false });
     }
@@ -599,10 +643,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       set({ requestsLoading: true });
+
       const rows = (await api.friendRequests()) as any[];
       set({ requests: rows.map(normalizeFriendRequest) });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Anfragen konnten nicht geladen werden") });
+      set({
+        error: getErrorMessage(err, "Anfragen konnten nicht geladen werden")
+      });
     } finally {
       set({ requestsLoading: false });
     }
@@ -610,6 +657,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   async sendFriendRequest(username) {
     const clean = username.trim();
+
     if (!clean) {
       set({ error: "Username fehlt" });
       return;
@@ -627,14 +675,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   async acceptRequest(id) {
     try {
       set({ error: null, info: null });
+
       await api.acceptFriendRequest(id);
 
+      // Kein loadFriends mehr.
+      // Backend sendet friend:added per WebSocket.
       set({
         requests: get().requests.filter((r) => r.id !== id),
         info: "Freundschaftsanfrage angenommen"
       });
-
-      await get().loadFriends();
     } catch (err) {
       set({ error: getErrorMessage(err, "Accept failed") });
     }
@@ -643,6 +692,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   async declineRequest(id) {
     try {
       set({ error: null, info: null });
+
       await api.declineFriendRequest(id);
 
       set({
@@ -657,10 +707,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   async removeFriend(friendId) {
     try {
       set({ error: null, info: null });
+
       await api.removeFriend(friendId);
 
+      // Optionaler Sofort-Update für aktuellen Client.
+      // Anderer Client bekommt friend:removed per WebSocket.
       const active = get().activeFriendId;
-      const { [friendId]: _removedUnread, ...restUnread } = get().unreadByFriend;
+      const { [friendId]: _removedUnread, ...restUnread } =
+        get().unreadByFriend;
 
       set({
         friends: get().friends.filter((f) => f.id !== friendId),
@@ -671,11 +725,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         info: "Freund entfernt"
       });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Freund konnte nicht entfernt werden") });
+      set({
+        error: getErrorMessage(err, "Freund konnte nicht entfernt werden")
+      });
     }
   },
 
-  /* DMs */
+  /* ==========================================================================
+     Direct Messages
+     ========================================================================== */
+
   async openDm(friendId) {
     get().sendDmTyping(false);
 
@@ -685,50 +744,49 @@ export const useAppStore = create<AppState>((set, get) => ({
       replyToMessage: null,
       error: null,
       info: null,
-      unreadByFriend: { ...get().unreadByFriend, [friendId]: 0 },
-
-      activeServerId: null,
-      serverDetail: null,
-      serverChannels: [],
-      activeChannelId: null,
-      channelMessages: []
+      unreadByFriend: {
+        ...get().unreadByFriend,
+        [friendId]: 0
+      }
     });
 
     try {
+      // Initial Load beim Öffnen ist okay.
       const rows = (await api.directMessages(friendId)) as any[];
       set({ dmMessages: rows.map(normalizeDm) });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Nachrichten konnten nicht geladen werden") });
+      set({
+        error: getErrorMessage(err, "Nachrichten konnten nicht geladen werden")
+      });
     }
   },
 
   async sendDm(content) {
     const text = content.trim();
     const friendId = get().activeFriendId;
+
     if (!text || !friendId) return;
 
     try {
       get().sendDmTyping(false);
 
       const replyTo = get().replyToMessage;
-      const msg = normalizeDm(await api.sendDirectMessage(friendId, text, replyTo?.id ?? null));
 
-      const exists = get().dmMessages.some((m) => m.id === msg.id);
-      if (exists) {
-        set({
-          replyToMessage: null,
-          dmTypingByFriend: { ...get().dmTypingByFriend, [friendId]: null }
-        });
-        return;
-      }
+      // Backend sendet dm:new an Sender und Receiver.
+      // Wir hängen lokal NICHT zusätzlich an, damit alles über WS läuft.
+      await api.sendDirectMessage(friendId, text, replyTo?.id ?? null);
 
       set({
-        dmMessages: [...get().dmMessages, msg],
         replyToMessage: null,
-        dmTypingByFriend: { ...get().dmTypingByFriend, [friendId]: null }
+        dmTypingByFriend: {
+          ...get().dmTypingByFriend,
+          [friendId]: null
+        }
       });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Nachricht konnte nicht gesendet werden") });
+      set({
+        error: getErrorMessage(err, "Nachricht konnte nicht gesendet werden")
+      });
     }
   },
 
@@ -750,40 +808,49 @@ export const useAppStore = create<AppState>((set, get) => ({
   async deleteDm(messageId) {
     try {
       await api.deleteDirectMessage(messageId);
-      set({
-        dmMessages: get().dmMessages.filter((m) => m.id !== messageId),
-        replyToMessage: get().replyToMessage?.id === messageId ? null : get().replyToMessage
-      });
+      // Backend sendet dm:delete an beide.
     } catch (err) {
-      set({ error: getErrorMessage(err, "Nachricht konnte nicht gelöscht werden") });
+      set({
+        error: getErrorMessage(err, "Nachricht konnte nicht gelöscht werden")
+      });
     }
   },
 
   async togglePinDm(messageId) {
     try {
-      const updated = normalizeDm(await api.togglePinDirectMessage(messageId));
-      set({
-        dmMessages: get().dmMessages.map((m) => (m.id === updated.id ? updated : m))
-      });
+      await api.togglePinDirectMessage(messageId);
+      // Backend sendet dm:pin an beide.
     } catch (err) {
       set({ error: getErrorMessage(err, "Pin konnte nicht geändert werden") });
     }
   },
 
-  /* Settings */
+  /* ==========================================================================
+     Settings
+     ========================================================================== */
+
   setSettingsOpen(open) {
-    set({ settingsOpen: open, error: null, info: null });
+    set({
+      settingsOpen: open,
+      error: null,
+      info: null
+    });
   },
 
   async updateUsername(username, bio) {
     const clean = username.trim();
+
     if (!clean) {
       set({ error: "Username fehlt" });
       return;
     }
 
     try {
-      set({ loading: true, error: null, info: null });
+      set({
+        loading: true,
+        error: null,
+        info: null
+      });
 
       const updated = normalizeUser(await api.updateMe(clean, bio ?? null));
       const currentUser = get().user;
@@ -799,20 +866,33 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         user: nextUser,
+
         friends: get().friends.map((friend) =>
           friend.id === nextUser.id
-            ? { ...friend, username: nextUser.username, avatar_url: nextUser.avatar_url ?? null }
+            ? {
+                ...friend,
+                username: nextUser.username,
+                avatar_url: nextUser.avatar_url ?? null
+              }
             : friend
         ),
+
         dmMessages: get().dmMessages.map((msg) =>
           msg.sender_id === nextUser.id
-            ? { ...msg, sender_username: nextUser.username, sender_avatar_url: nextUser.avatar_url ?? null }
+            ? {
+                ...msg,
+                sender_username: nextUser.username,
+                sender_avatar_url: nextUser.avatar_url ?? null
+              }
             : msg
         ),
+
         info: "Profil gespeichert"
       });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Profil konnte nicht gespeichert werden") });
+      set({
+        error: getErrorMessage(err, "Profil konnte nicht gespeichert werden")
+      });
     } finally {
       set({ loading: false });
     }
@@ -820,19 +900,25 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   async uploadAvatar(file) {
     const allowedTypes = ["image/png", "image/jpeg"];
+
     if (!allowedTypes.includes(file.type)) {
       set({ error: "Nur PNG oder JPG erlaubt" });
       return;
     }
 
     const maxSize = 2 * 1024 * 1024;
+
     if (file.size > maxSize) {
       set({ error: "Profilbild darf maximal 2MB groß sein" });
       return;
     }
 
     try {
-      set({ loading: true, error: null, info: null });
+      set({
+        loading: true,
+        error: null,
+        info: null
+      });
 
       const updated = normalizeUser(await api.uploadAvatar(file));
       const currentUser = get().user;
@@ -846,26 +932,49 @@ export const useAppStore = create<AppState>((set, get) => ({
             avatar_url: avatarUrl,
             bio: updated.bio ?? currentUser.bio ?? null
           }
-        : { ...updated, avatar_url: avatarUrl };
+        : {
+            ...updated,
+            avatar_url: avatarUrl
+          };
 
       set({
         user: nextUser,
+
         friends: get().friends.map((friend) =>
-          friend.id === nextUser.id ? { ...friend, username: nextUser.username, avatar_url: avatarUrl } : friend
+          friend.id === nextUser.id
+            ? {
+                ...friend,
+                username: nextUser.username,
+                avatar_url: avatarUrl
+              }
+            : friend
         ),
+
         dmMessages: get().dmMessages.map((msg) =>
-          msg.sender_id === nextUser.id ? { ...msg, sender_username: nextUser.username, sender_avatar_url: avatarUrl } : msg
+          msg.sender_id === nextUser.id
+            ? {
+                ...msg,
+                sender_username: nextUser.username,
+                sender_avatar_url: avatarUrl
+              }
+            : msg
         ),
+
         info: "Profilbild geändert"
       });
     } catch (err) {
-      set({ error: getErrorMessage(err, "Avatar konnte nicht hochgeladen werden") });
+      set({
+        error: getErrorMessage(err, "Avatar konnte nicht hochgeladen werden")
+      });
     } finally {
       set({ loading: false });
     }
   },
 
-  /* Profile */
+  /* ==========================================================================
+     Profile
+     ========================================================================== */
+
   async openProfile(userId) {
     try {
       set({ error: null, info: null });
@@ -887,236 +996,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   closeProfile() {
-    set({ profileOpen: false, profileUser: null });
-  },
-
-  /* Server UI */
-  setCreateServerOpen(open) {
-    set({ createServerOpen: open, error: null, info: null });
-  },
-
-  /* Servers */
-  async loadServers() {
-    try {
-      const rows = (await api.listServers()) as Server[];
-      set({ servers: rows });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Server konnten nicht geladen werden") });
-    }
-  },
-
-  async selectServer(serverId) {
-    if (!serverId) {
-      set({
-        activeServerId: null,
-        serverDetail: null,
-        serverChannels: [],
-        activeChannelId: null,
-        channelMessages: []
-      });
-      return;
-    }
-
-    try {
-      set({
-        activeServerId: serverId,
-        serverDetail: null,
-        serverChannels: [],
-        activeChannelId: null,
-        channelMessages: [],
-        error: null,
-        info: null,
-
-        activeFriendId: null,
-        dmMessages: [],
-        replyToMessage: null
-      });
-
-      const detail = (await api.getServer(serverId)) as ServerDetail;
-      set({ serverDetail: detail });
-
-      await get().loadServerChannels();
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Server konnte nicht geladen werden") });
-    }
-  },
-
-  async createServer(name, description, avatar) {
-    const cleanName = (name ?? "").trim();
-    const cleanDesc = (description ?? "").trim();
-    if (!cleanName) {
-      set({ error: "Servername fehlt" });
-      return;
-    }
-
-    try {
-      set({ loading: true, error: null, info: null });
-
-      const created = (await api.createServer(cleanName, cleanDesc || null)) as Server;
-
-      if (avatar) {
-        await api.uploadServerAvatar(created.id, avatar);
-      }
-
-      await get().loadServers();
-      await get().selectServer(created.id);
-
-      set({ info: "Server erstellt" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Server konnte nicht erstellt werden") });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  async addMemberToServer(userId) {
-    const serverId = get().activeServerId;
-    if (!serverId) return;
-
-    try {
-      set({ error: null, info: null });
-
-      await api.addServerMember(serverId, userId);
-      const detail = (await api.getServer(serverId)) as ServerDetail;
-      set({ serverDetail: detail, info: "Mitglied hinzugefügt" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Mitglied konnte nicht hinzugefügt werden") });
-    }
-  },
-
-  async removeMemberFromServer(userId) {
-    const serverId = get().activeServerId;
-    if (!serverId) return;
-
-    try {
-      set({ error: null, info: null });
-
-      await api.removeServerMember(serverId, userId);
-      const detail = (await api.getServer(serverId)) as ServerDetail;
-      set({ serverDetail: detail, info: "Mitglied entfernt" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Mitglied konnte nicht entfernt werden") });
-    }
-  },
-
-  async deleteActiveServer() {
-    const serverId = get().activeServerId;
-    if (!serverId) return;
-
-    try {
-      set({ error: null, info: null });
-
-      await api.deleteServer(serverId);
-
-      set({
-        activeServerId: null,
-        serverDetail: null,
-        serverChannels: [],
-        activeChannelId: null,
-        channelMessages: []
-      });
-
-      await get().loadServers();
-      set({ info: "Server gelöscht" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Server konnte nicht gelöscht werden") });
-    }
-  },
-
-  /* Channels */
-  async loadServerChannels() {
-    const serverId = get().activeServerId;
-    if (!serverId) return;
-
-    try {
-      const rows = (await api.listServerChannels(serverId)) as Channel[];
-      set({ serverChannels: rows });
-
-      // auto-select first channel if none selected
-      if (!get().activeChannelId && rows.length > 0) {
-        await get().selectChannel(rows[0].id);
-      }
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Channels konnten nicht geladen werden") });
-    }
-  },
-
-  async selectChannel(channelId) {
-    set({ activeChannelId: channelId, channelMessages: [], error: null, info: null });
-    await get().loadChannelMessages(channelId);
-  },
-
-  async createChannel(name) {
-    const serverId = get().activeServerId;
-    if (!serverId) return;
-
-    const clean = name.trim();
-    if (!clean) return;
-
-    try {
-      set({ error: null, info: null });
-      await api.createServerChannel(serverId, clean);
-
-      await get().loadServerChannels();
-      set({ info: "Channel erstellt" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Channel konnte nicht erstellt werden") });
-    }
-  },
-
-  async deleteChannel(channelId) {
-    try {
-      set({ error: null, info: null });
-
-      await api.deleteChannel(channelId);
-
-      // if deleting active channel, reset selection
-      if (get().activeChannelId === channelId) {
-        set({ activeChannelId: null, channelMessages: [] });
-      }
-
-      await get().loadServerChannels();
-      set({ info: "Channel gelöscht" });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Channel konnte nicht gelöscht werden") });
-    }
-  },
-
-  /* Channel Messages */
-  async loadChannelMessages(channelId) {
-    try {
-      const rows = (await api.channelMessages(channelId)) as ChannelMessage[];
-
-      // reuse formatTime for channel messages
-      const mapped = rows.map((m) => ({
-        ...m,
-        created_at: formatTime(String(m.created_at ?? ""))
-      }));
-
-      set({ channelMessages: mapped });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Channel Messages konnten nicht geladen werden") });
-    }
-  },
-
-  async sendChannelMessage(content) {
-    const channelId = get().activeChannelId;
-    if (!channelId) return;
-
-    const clean = content.trim();
-    if (!clean) return;
-
-    try {
-      const msg = (await api.sendChannelMessage(channelId, clean)) as ChannelMessage;
-
-      const mapped: ChannelMessage = {
-        ...msg,
-        created_at: formatTime(String(msg.created_at ?? ""))
-      };
-
-      set({ channelMessages: [...get().channelMessages, mapped] });
-    } catch (err) {
-      set({ error: getErrorMessage(err, "Nachricht konnte nicht gesendet werden") });
-    }
+    set({
+      profileOpen: false,
+      profileUser: null
+    });
   }
 }));
+
+export function appFormatTime(value: string) {
+  return formatTime(value);
+}
+
+export function appGetErrorMessage(err: unknown, fallback: string) {
+  return getErrorMessage(err, fallback);
+}

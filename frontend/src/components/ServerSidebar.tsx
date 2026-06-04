@@ -1,5 +1,6 @@
 import { LogOut, Plus, Settings } from "lucide-react";
 import { useAppStore } from "../store";
+import { useServerStore } from "../store_2";
 import { API_URL } from "../api";
 
 function assetUrl(path?: string | null): string | undefined {
@@ -11,13 +12,18 @@ function assetUrl(path?: string | null): string | undefined {
 export function ServerSidebar() {
   const logout = useAppStore((s) => s.logout);
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
-  const setCreateServerOpen = useAppStore((s) => s.setCreateServerOpen);
-
   const user = useAppStore((s) => s.user);
 
-  const servers = useAppStore((s) => s.servers);
-  const activeServerId = useAppStore((s) => s.activeServerId);
-  const selectServer = useAppStore((s) => s.selectServer);
+  const servers = useServerStore((s) => s.servers);
+  const activeServerId = useServerStore((s) => s.activeServerId);
+  const selectServer = useServerStore((s) => s.selectServer);
+  const setCreateServerOpen = useServerStore((s) => s.setCreateServerOpen);
+  const resetServerStore = useServerStore((s) => s.resetServerStore);
+
+  function handleLogout() {
+    resetServerStore();
+    logout();
+  }
 
   return (
     <aside className="server-sidebar">
@@ -31,20 +37,31 @@ export function ServerSidebar() {
 
       <div className="server-divider" />
 
-      {servers.map((s) => {
-        const avatar = assetUrl(s.avatar_url ?? null);
+      {servers.map((server) => {
+        const avatar = assetUrl(server.avatar_url ?? null);
 
         return (
           <button
-            key={s.id}
-            className={"server-icon " + (activeServerId === s.id ? "active" : "")}
-            title={s.name}
-            onClick={() => void selectServer(s.id)}
+            key={server.id}
+            className={
+              "server-icon " + (activeServerId === server.id ? "active" : "")
+            }
+            title={server.name}
+            onClick={() => void selectServer(server.id)}
           >
             {avatar ? (
-              <img src={avatar} alt="server" style={{ width: 28, height: 28, borderRadius: 10, objectFit: "cover" }} />
+              <img
+                src={avatar}
+                alt="server"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 10,
+                  objectFit: "cover"
+                }}
+              />
             ) : (
-              s.name.slice(0, 2).toUpperCase()
+              server.name.slice(0, 2).toUpperCase()
             )}
           </button>
         );
@@ -68,7 +85,7 @@ export function ServerSidebar() {
         <Settings size={18} />
       </button>
 
-      <button className="server-icon logout" onClick={logout}>
+      <button className="server-icon logout" onClick={handleLogout}>
         <LogOut size={18} />
       </button>
     </aside>

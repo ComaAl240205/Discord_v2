@@ -5,9 +5,23 @@ type SocketHandler = (data: any) => void;
 let socket: WebSocket | null = null;
 let handler: SocketHandler | null = null;
 
-// Nachrichten, die gesendet werden sollen,
-// bevor WebSocket wirklich OPEN ist.
 const pendingMessages: unknown[] = [];
+
+function buildWsUrl(token: string) {
+  const raw =
+    (import.meta.env.VITE_WS_URL as string | undefined)?.trim() ||
+    "ws://localhost:8000/ws";
+
+  const url = new URL(raw);
+
+  if (url.pathname === "" || url.pathname === "/") {
+    url.pathname = "/ws";
+  }
+
+  url.searchParams.set("token", token);
+
+  return url.toString();
+}
 
 function flushPendingMessages() {
   if (!socket || socket.readyState !== WebSocket.OPEN) return;
@@ -23,16 +37,13 @@ export function connectSocket(token: string, onMessage: SocketHandler) {
 
   if (
     socket &&
-    (
-      socket.readyState === WebSocket.OPEN ||
-      socket.readyState === WebSocket.CONNECTING
-    )
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
   ) {
     return;
   }
 
-  const wsBase = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws";
-  const wsUrl = `${wsBase}?token=${encodeURIComponent(token)}`;
+  const wsUrl = buildWsUrl(token);
 
   socket = new WebSocket(wsUrl);
 
@@ -79,13 +90,11 @@ export function isSocketConnecting() {
 }
 
 export function sendSocket(data: unknown) {
-  // Wenn offen: direkt senden
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(data));
     return true;
   }
 
-  // Wenn noch verbindet: Queue nutzen
   if (socket && socket.readyState === WebSocket.CONNECTING) {
     pendingMessages.push(data);
     return true;
